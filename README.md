@@ -1,6 +1,6 @@
 # Visitas
 
-Registro de visitantes para recepción. Anota quién entra, a quién visita y cuándo sale. Los datos quedan guardados en el navegador.
+Mapa para armar salidas comerciales y ofrecer productos de librería.
 
 ## Uso
 
@@ -11,12 +11,12 @@ npm run dev
 
 Abre la dirección que muestra Vite. Por defecto es http://localhost:5173.
 
-## Qué puedes hacer
+## Cómo funciona
 
-- Registrar una entrada con nombre, documento, empresa, anfitrión y motivo.
-- Marcar la salida de quien sigue dentro.
-- Ver quién está dentro, las entradas de hoy o el libro completo.
-- Buscar por nombre, documento, empresa, anfitrión o motivo.
-- Deshacer una salida o una eliminación.
+1. Busca tu ciudad o usa tu ubicación.
+2. Dibuja un círculo sobre la zona que vas a recorrer.
+3. Aparece la lista de comercios de esa zona, con los datos que tiene el mapa.
+4. Marca **Visitar** o **Descartar**.
+5. En **Por visitar** queda la lista elegida. Cada comercio tiene un botón para marcarlo como visitado o no.
 
-La primera vez la app carga visitas de ejemplo para que el libro no aparezca vacío. Si las borras, no vuelven a aparecer.
+La lista por visitar se guarda en el navegador. Los comercios salen de OpenStreetMap.

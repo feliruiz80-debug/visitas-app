@@ -1,193 +1,345 @@
-export type Visit = {
+export type CircleZone = {
+  lat: number;
+  lng: number;
+  radius: number;
+};
+
+export type Place = {
   id: string;
-  visitorName: string;
-  documentId: string;
-  company: string;
-  hostName: string;
-  reason: string;
-  enteredAt: string;
-  leftAt: string | null;
+  name: string;
+  shop: string;
+  shopLabel: string;
+  address: string;
+  phone: string;
+  website: string;
+  openingHours: string;
+  lat: number;
+  lng: number;
+  distance: number;
 };
 
-export type NewVisit = {
-  visitorName: string;
-  documentId: string;
-  company: string;
-  hostName: string;
-  reason: string;
+export type SavedVisit = Place & {
+  visited: boolean;
+  addedAt: string;
 };
 
-const STORAGE_KEY = "visitas-app.v1";
+export type ZoneSearchHit = {
+  id: string;
+  label: string;
+  lat: number;
+  lng: number;
+};
 
-const AVATAR_COLORS = ["#0f6e56", "#8a4b2f", "#3d4f7c", "#6b3f55", "#3f5c45", "#70552d"];
+export type ShopSearch = {
+  places: Place[];
+  limited: boolean;
+};
 
-function minutesAgo(minutes: number): string {
-  return new Date(Date.now() - minutes * 60_000).toISOString();
+export const MIN_RADIUS_METERS = 80;
+export const MAX_RADIUS_METERS = 2500;
+
+const STORAGE_KEY = "visitas-app.v2";
+
+const SHOP_LABELS: Record<string, string> = {
+  alcohol: "Bebidas",
+  antiques: "Antigüedades",
+  art: "Arte",
+  bakery: "Panadería",
+  beauty: "Belleza",
+  beverages: "Bebidas",
+  bicycle: "Bicicletas",
+  books: "Librería",
+  boutique: "Boutique",
+  butcher: "Carnicería",
+  car: "Automotor",
+  car_parts: "Repuestos",
+  car_repair: "Taller",
+  carpet: "Alfombras",
+  chemist: "Farmacia",
+  clothes: "Ropa",
+  coffee: "Cafetería",
+  computer: "Informática",
+  confectionery: "Confitería",
+  convenience: "Almacén",
+  copyshop: "Fotocopias",
+  cosmetics: "Cosmética",
+  craft: "Manualidades",
+  deli: "Fiambrería",
+  department_store: "Tienda por departamentos",
+  doityourself: "Mejoras del hogar",
+  dry_cleaning: "Lavandería",
+  electronics: "Electrónica",
+  fabric: "Telas",
+  florist: "Florería",
+  furniture: "Muebles",
+  garden_centre: "Jardinería",
+  general: "Bazar",
+  gift: "Regalos",
+  greengrocer: "Verdulería",
+  hairdresser: "Peluquería",
+  hardware: "Ferretería",
+  houseware: "Artículos para el hogar",
+  jewelry: "Joyería",
+  kiosk: "Kiosco",
+  laundry: "Lavandería",
+  locksmith: "Cerrajería",
+  mall: "Centro comercial",
+  mobile_phone: "Telefonía",
+  motorcycle: "Motos",
+  music: "Música",
+  newsagent: "Diarios y revistas",
+  optician: "Óptica",
+  outdoor: "Aire libre",
+  paint: "Pinturería",
+  pastry: "Pastelería",
+  pet: "Mascotas",
+  photo: "Fotografía",
+  seafood: "Pescadería",
+  second_hand: "Segunda mano",
+  shoes: "Calzado",
+  sports: "Deportes",
+  stationery: "Papelería",
+  supermarket: "Supermercado",
+  tailor: "Sastrería",
+  tea: "Té",
+  ticket: "Entradas",
+  tobacco: "Tabaquería",
+  toys: "Juguetería",
+  trade: "Mayorista",
+  travel_agency: "Agencia de viajes",
+  tyres: "Neumáticos",
+  variety_store: "Bazar",
+  watches: "Relojería",
+  wholesale: "Mayorista",
+  wine: "Vinos",
+  yes: "Comercio",
+};
+
+const OVERPASS_ENDPOINTS = [
+  "https://overpass-api.de/api/interpreter",
+  "https://overpass.kumi.systems/api/interpreter",
+];
+
+type OverpassElement = {
+  type: string;
+  id: number;
+  lat?: number;
+  lon?: number;
+  center?: { lat: number; lon: number };
+  tags?: Record<string, string>;
+};
+
+type OverpassResponse = {
+  elements?: OverpassElement[];
+};
+
+type PhotonFeature = {
+  geometry: { coordinates: [number, number] };
+  properties: {
+    name?: string;
+    street?: string;
+    district?: string;
+    city?: string;
+    state?: string;
+    country?: string;
+    locality?: string;
+  };
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
 }
 
-function createSeed(): Visit[] {
-  return [
-    {
-      id: "seed-ana",
-      visitorName: "Ana Beltrán",
-      documentId: "45.882.110",
-      company: "Comercial Andina",
-      hostName: "Laura Méndez",
-      reason: "Propuesta de mantenimiento",
-      enteredAt: minutesAgo(35),
-      leftAt: null,
-    },
-    {
-      id: "seed-hector",
-      visitorName: "Héctor Salas",
-      documentId: "18.220.441",
-      company: "Taller Norte",
-      hostName: "Diego Paredes",
-      reason: "Revisión de equipos",
-      enteredAt: minutesAgo(130),
-      leftAt: null,
-    },
-    {
-      id: "seed-sofia",
-      visitorName: "Sofía Kim",
-      documentId: "39.104.772",
-      company: "Estudio Kim",
-      hostName: "Martín Acosta",
-      reason: "Entrevista",
-      enteredAt: minutesAgo(180),
-      leftAt: minutesAgo(90),
-    },
-    {
-      id: "seed-pablo",
-      visitorName: "Pablo Herrera",
-      documentId: "27.551.903",
-      company: "Logística Sur",
-      hostName: "Camila Rivas",
-      reason: "Entrega de repuestos",
-      enteredAt: minutesAgo(240),
-      leftAt: minutesAgo(20),
-    },
-    {
-      id: "seed-elena",
-      visitorName: "Elena Duarte",
-      documentId: "12.908.336",
-      company: "Clínica del Parque",
-      hostName: "Inés Molina",
-      reason: "Consulta de seguimiento",
-      enteredAt: minutesAgo(60 * 26),
-      leftAt: minutesAgo(60 * 24),
-    },
-  ];
+function tag(tags: Record<string, string>, ...keys: string[]): string {
+  for (const key of keys) {
+    const value = tags[key]?.trim();
+    if (value) return value;
+  }
+  return "";
 }
 
-function isVisit(value: unknown): value is Visit {
-  if (!value || typeof value !== "object") return false;
-  const visit = value as Partial<Visit>;
+export function shopLabel(shop: string): string {
+  return SHOP_LABELS[shop] ?? "Comercio";
+}
+
+export function formatRadius(meters: number): string {
+  if (meters < 1000) return `${Math.round(meters)} m`;
+  return `${(meters / 1000).toFixed(1).replace(".", ",")} km`;
+}
+
+export function websiteHref(value: string): string {
+  return /^https?:\/\//i.test(value) ? value : `https://${value}`;
+}
+
+export function directionsUrl(lat: number, lng: number): string {
+  return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+}
+
+export function distanceMeters(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const earth = 6371000;
+  const toRad = (degrees: number) => (degrees * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return 2 * earth * Math.asin(Math.sqrt(a));
+}
+
+function infoScore(place: Place): number {
+  return [place.address, place.phone, place.website, place.openingHours].filter(Boolean).length;
+}
+
+function dedupe(places: Place[]): Place[] {
+  const kept: Place[] = [];
+  const ranked = [...places].sort((a, b) => infoScore(b) - infoScore(a));
+  for (const place of ranked) {
+    const name = place.name.trim().toLowerCase();
+    const duplicate = kept.some(
+      (other) =>
+        other.name.trim().toLowerCase() === name &&
+        distanceMeters(other.lat, other.lng, place.lat, place.lng) < 40,
+    );
+    if (!duplicate) kept.push(place);
+  }
+  return kept.sort((a, b) => a.distance - b.distance);
+}
+
+function toPlace(element: OverpassElement, zone: CircleZone): Place | null {
+  const tags = element.tags ?? {};
+  const lat = element.lat ?? element.center?.lat;
+  const lng = element.lon ?? element.center?.lon;
+  const name = tag(tags, "name");
+  if (lat === undefined || lng === undefined || !name) return null;
+  const street = [tag(tags, "addr:street"), tag(tags, "addr:housenumber")].filter(Boolean).join(" ");
+  const city = tag(tags, "addr:city", "addr:town", "addr:suburb");
+  const shop = tag(tags, "shop") || "yes";
+  return {
+    id: `${element.type}/${element.id}`,
+    name,
+    shop,
+    shopLabel: shopLabel(shop),
+    address: [street, city].filter(Boolean).join(", ") || tag(tags, "addr:full"),
+    phone: tag(tags, "phone", "contact:phone"),
+    website: tag(tags, "website", "contact:website"),
+    openingHours: tag(tags, "opening_hours"),
+    lat,
+    lng,
+    distance: distanceMeters(zone.lat, zone.lng, lat, lng),
+  };
+}
+
+async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: number): Promise<Response> {
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } finally {
+    window.clearTimeout(timer);
+  }
+}
+
+export async function fetchShops(zone: CircleZone): Promise<ShopSearch> {
+  const radius = Math.round(zone.radius);
+  const query = `[out:json][timeout:25];
+(
+  node["shop"]["name"](around:${radius},${zone.lat.toFixed(6)},${zone.lng.toFixed(6)});
+  way["shop"]["name"](around:${radius},${zone.lat.toFixed(6)},${zone.lng.toFixed(6)});
+);
+out center 100;`;
+
+  let lastError: unknown;
+  for (const endpoint of OVERPASS_ENDPOINTS) {
+    try {
+      const response = await fetchWithTimeout(
+        endpoint,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
+          body: `data=${encodeURIComponent(query)}`,
+        },
+        25000,
+      );
+      if (!response.ok) {
+        lastError = new Error(`Respuesta ${response.status}`);
+        continue;
+      }
+      const payload = (await response.json()) as OverpassResponse;
+      const elements = payload.elements ?? [];
+      const places = dedupe(
+        elements.flatMap((element) => {
+          const place = toPlace(element, zone);
+          return place ? [place] : [];
+        }),
+      );
+      return { places, limited: elements.length >= 100 };
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error("No se pudieron cargar los comercios.");
+}
+
+export async function searchZones(query: string): Promise<ZoneSearchHit[]> {
+  const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&lang=es&limit=5`;
+  const response = await fetchWithTimeout(url, {}, 12000);
+  if (!response.ok) throw new Error("No se pudo buscar la zona.");
+  const payload = (await response.json()) as { features?: PhotonFeature[] };
+  return (payload.features ?? []).map((feature, index) => {
+    const [lng, lat] = feature.geometry.coordinates;
+    const props = feature.properties;
+    const parts = [props.name, props.street, props.district || props.locality, props.city, props.state, props.country]
+      .filter((part): part is string => Boolean(part))
+      .filter((part, partIndex, all) => all.indexOf(part) === partIndex);
+    return {
+      id: `${lat.toFixed(5)},${lng.toFixed(5)},${index}`,
+      label: parts.join(", ") || "Zona sin nombre",
+      lat,
+      lng,
+    };
+  });
+}
+
+function isSavedVisit(value: unknown): value is SavedVisit {
+  if (!isRecord(value)) return false;
   return (
-    typeof visit.id === "string" &&
-    typeof visit.visitorName === "string" &&
-    typeof visit.documentId === "string" &&
-    typeof visit.company === "string" &&
-    typeof visit.hostName === "string" &&
-    typeof visit.reason === "string" &&
-    typeof visit.enteredAt === "string" &&
-    (visit.leftAt === null || typeof visit.leftAt === "string")
+    typeof value.id === "string" &&
+    typeof value.name === "string" &&
+    typeof value.shop === "string" &&
+    typeof value.shopLabel === "string" &&
+    typeof value.address === "string" &&
+    typeof value.phone === "string" &&
+    typeof value.website === "string" &&
+    typeof value.openingHours === "string" &&
+    typeof value.lat === "number" &&
+    typeof value.lng === "number" &&
+    typeof value.distance === "number" &&
+    typeof value.visited === "boolean" &&
+    typeof value.addedAt === "string"
   );
 }
 
-export function loadVisits(): Visit[] {
-  const raw = localStorage.getItem(STORAGE_KEY);
-  if (raw === null) {
-    const seeded = createSeed();
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(seeded));
-    return seeded;
-  }
-
+export function loadVisits(): SavedVisit[] {
   try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return [];
     const parsed: unknown = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
-    return parsed.filter(isVisit);
+    return parsed.filter(isSavedVisit);
   } catch {
     return [];
   }
 }
 
-export function saveVisits(visits: Visit[]): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(visits));
+export function saveVisits(visits: SavedVisit[]): void {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(visits));
+  } catch {
+    // The list still works for this session if the browser blocks storage.
+  }
 }
 
-export function createVisit(visits: Visit[], input: NewVisit, at = new Date().toISOString()): Visit[] {
-  const visit: Visit = {
-    id: crypto.randomUUID(),
-    visitorName: input.visitorName.trim(),
-    documentId: input.documentId.trim(),
-    company: input.company.trim(),
-    hostName: input.hostName.trim(),
-    reason: input.reason.trim(),
-    enteredAt: at,
-    leftAt: null,
-  };
-  return [visit, ...visits];
-}
-
-export function checkoutVisit(visits: Visit[], id: string, at = new Date().toISOString()): Visit[] {
-  return visits.map((visit) =>
-    visit.id === id && visit.leftAt === null ? { ...visit, leftAt: at } : visit,
-  );
-}
-
-export function deleteVisit(visits: Visit[], id: string): Visit[] {
-  return visits.filter((visit) => visit.id !== id);
-}
-
-export function isSameLocalDay(iso: string, day: Date): boolean {
-  const date = new Date(iso);
-  return (
-    date.getFullYear() === day.getFullYear() &&
-    date.getMonth() === day.getMonth() &&
-    date.getDate() === day.getDate()
-  );
-}
-
-export function initials(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return "?";
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
-}
-
-export function avatarColor(name: string): string {
-  let hash = 0;
-  for (const char of name) hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
-  return AVATAR_COLORS[hash % AVATAR_COLORS.length];
-}
-
-export function formatClock(iso: string): string {
-  return new Intl.DateTimeFormat("es", { hour: "2-digit", minute: "2-digit" }).format(new Date(iso));
-}
-
-export function formatDay(date: Date): string {
-  const label = new Intl.DateTimeFormat("es", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-  }).format(date);
-  return label.charAt(0).toUpperCase() + label.slice(1);
-}
-
-export function formatDuration(fromIso: string, to: Date): string {
-  const totalMinutes = Math.max(0, Math.floor((to.getTime() - new Date(fromIso).getTime()) / 60_000));
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-  if (hours === 0) return `${minutes} min`;
-  return `${hours} h ${minutes} min`;
-}
-
-export function matchesQuery(visit: Visit, query: string): boolean {
-  const needle = query.trim().toLowerCase();
-  if (!needle) return true;
-  const haystack = [visit.visitorName, visit.documentId, visit.company, visit.hostName, visit.reason]
-    .join(" ")
-    .toLowerCase();
-  return haystack.includes(needle);
+export function toVisit(place: Place): SavedVisit {
+  return { ...place, visited: false, addedAt: new Date().toISOString() };
 }

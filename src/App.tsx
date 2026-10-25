@@ -4,7 +4,8 @@ import { ContactPage } from "./components/ContactPage";
 import { CoverPage } from "./components/CoverPage";
 import { FlipBook } from "./components/FlipBook";
 import { IndexPage } from "./components/IndexPage";
-import { groupByCategory, loadCatalog } from "./data/sheet";
+import { Logo } from "./components/Logo";
+import { groupByCategory, loadCatalog, paginateCategories } from "./data/sheet";
 import type { CatalogSource, CategoryGroup, Product } from "./data/types";
 
 type MagPage =
@@ -16,10 +17,8 @@ type MagPage =
 export function App() {
   const [products, setProducts] = useState<Product[]>([]);
   const [source, setSource] = useState<CatalogSource>("seed");
-  const [notice, setNotice] = useState<string | undefined>();
   const [loading, setLoading] = useState(true);
   const [pageIndex, setPageIndex] = useState(0);
-  const [query, setQuery] = useState("");
 
   useEffect(() => {
     let alive = true;
@@ -27,7 +26,6 @@ export function App() {
       if (!alive) return;
       setProducts(result.products);
       setSource(result.source);
-      setNotice(result.notice);
       setLoading(false);
     });
     return () => {
@@ -35,30 +33,19 @@ export function App() {
     };
   }, []);
 
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return products;
-    return products.filter((product) => {
-      const hay = [product.name, product.category, product.subcategory, product.description, product.brand, ...product.tags]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
-      return hay.includes(q);
-    });
-  }, [products, query]);
-
-  const groups = useMemo(() => groupByCategory(filtered), [filtered]);
+  const groups = useMemo(() => groupByCategory(products), [products]);
+  const categoryPages = useMemo(() => paginateCategories(groups), [groups]);
 
   const pages = useMemo<MagPage[]>(() => {
     const list: MagPage[] = [{ kind: "cover" }, { kind: "contact", pageNumber: 2 }];
     if (groups.length > 0) {
       list.push({ kind: "index", pageNumber: 3 });
-      groups.forEach((group, index) => {
+      categoryPages.forEach((group, index) => {
         list.push({ kind: "category", pageNumber: 4 + index, group });
       });
     }
     return list;
-  }, [groups]);
+  }, [groups, categoryPages]);
 
   useEffect(() => {
     setPageIndex((current) => Math.min(current, Math.max(0, pages.length - 1)));
@@ -68,7 +55,10 @@ export function App() {
   const isCover = page?.kind === "cover";
 
   function jumpToCategory(categoryKey: string) {
-    const index = pages.findIndex((item) => item.kind === "category" && item.group.key === categoryKey);
+    const base = categoryKey.split("--p")[0];
+    const index = pages.findIndex(
+      (item) => item.kind === "category" && item.group.key.startsWith(base) && (item.group.part ?? 1) === 1,
+    );
     if (index >= 0) setPageIndex(index);
   }
 
@@ -88,43 +78,14 @@ export function App() {
   return (
     <div className={`app ${isCover ? "app--cover" : ""}`}>
       {!isCover ? (
-        <header className="topbar">
-          <button type="button" className="topbar__brand" onClick={() => setPageIndex(0)}>
-            <span className="topbar__mark">S</span>
-            <span>
-              <strong>Mayorista Sofia</strong>
-              <small>Revista digital</small>
-            </span>
+        <header className="logo-bar">
+          <button type="button" className="logo-bar__btn" onClick={() => setPageIndex(0)} aria-label="Ir a la portada">
+            <Logo size={48} />
           </button>
-
-          <label className="topbar__search">
-            <span className="sr-only">Buscar producto</span>
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Buscar producto…"
-            />
-          </label>
-
-          <div className="topbar__meta">
-            <span className={`pill ${source === "sheet" ? "pill--ok" : "pill--warn"}`}>
-              {loading ? "Cargando…" : source === "sheet" ? "Planilla en vivo" : "Catálogo local"}
-            </span>
-          </div>
+          <span className="logo-bar__live" title={source === "sheet" ? "Planilla en vivo" : source === "local" ? "Copia local" : "Respaldo"}>
+            {loading ? "…" : source === "sheet" ? "●" : "○"}
+          </span>
         </header>
-      ) : null}
-
-      {notice && !isCover ? (
-        <div className="banner" role="status">
-          <p>{notice}</p>
-          <a
-            href={`https://docs.google.com/spreadsheets/d/177FpyOQyCiRpEtUrTJfFzhsajNO-Tiza3ZRSD60KELw/edit`}
-            target="_blank"
-            rel="noreferrer"
-          >
-            Abrir Excel
-          </a>
-        </div>
       ) : null}
 
       <main className="stage">
@@ -140,24 +101,23 @@ export function App() {
       </main>
 
       {!isCover && !loading ? (
-        <div className="cats-rail" aria-label="Categorías">
+        <nav className="cats-rail" aria-label="Categorías">
           <button type="button" className={page?.kind === "contact" ? "is-active" : ""} onClick={() => setPageIndex(1)}>
             Pedido
           </button>
           <button type="button" className={page?.kind === "index" ? "is-active" : ""} onClick={() => setPageIndex(2)}>
             Índice
           </button>
-          {groups.map((group) => (
-            <button
-              key={group.key}
-              type="button"
-              className={page?.kind === "category" && page.group.key === group.key ? "is-active" : ""}
-              onClick={() => jumpToCategory(group.key)}
-            >
-              {group.label}
-            </button>
-          ))}
-        </div>
+          {groups.map((group) => {
+            const active =
+              page?.kind === "category" && page.group.key.split("--p")[0] === group.key;
+            return (
+              <button key={group.key} type="button" className={active ? "is-active" : ""} onClick={() => jumpToCategory(group.key)}>
+                {group.label}
+              </button>
+            );
+          })}
+        </nav>
       ) : null}
     </div>
   );

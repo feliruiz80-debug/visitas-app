@@ -247,7 +247,7 @@ export function FlipBook({ pageIndex, pageCount, onChange, children }: FlipBookP
         </button>
       </div>
 
-      <p className="flipbook__hint">Arrastrá la hoja · deslizá · flechas del teclado</p>
+      <p className="flipbook__hint">Arrastrá la hoja o usá las flechas</p>
     </div>
   );
 }

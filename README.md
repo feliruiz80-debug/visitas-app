@@ -1,6 +1,6 @@
 # Catálogo Escolar · Mayorista Sofia
 
-Revista digital con animación de pasar hojas, al estilo del catálogo físico de Librería Mayorista Sofia.
+Revista digital con el estilo del catálogo físico de Librería Mayorista Sofia.
 
 ## Uso
 
@@ -11,39 +11,23 @@ npm run dev
 
 Abrí la URL de Vite (por defecto http://localhost:5173).
 
-Pasá las páginas con los botones, deslizando o con las flechas del teclado.
-
-## Imágenes de productos
-
-Colocá las fotos en `public/catalog/` con el nombre del producto, por ejemplo:
-
-- `public/catalog/cartulina-lisos.jpg`
-- `public/catalog/papel-afiche.jpg`
-
-Si no hay foto, la tarjeta muestra un placeholder con el nombre de archivo esperado.
-También podés poner una URL en la columna `imagen` de la planilla.
+Pasá las páginas arrastrando la hoja, con los botones o con las flechas del teclado.
 
 ## Base de datos (Google Sheets)
 
-La revista lee productos desde esta planilla:
+Planilla categorizada (gid `2093740033`):
 
-https://docs.google.com/spreadsheets/d/177FpyOQyCiRpEtUrTJfFzhsajNO-Tiza3ZRSD60KELw
+https://docs.google.com/spreadsheets/d/177FpyOQyCiRpEtUrTJfFzhsajNO-Tiza3ZRSD60KELw/edit?gid=2093740033
 
-Para que se actualice sola, compartila como **Cualquier persona con el enlace → Lector**.
+Formato esperado:
 
-### Columnas sugeridas
+- Filas de **categoría** (solo el nombre en la columna Producto), por ejemplo `PAPELERIA`
+- Filas de **producto**: `Código`, `Cantidad`, `Producto`, `Precio unitario`, `Total`, `Imagen (URL)`
 
-| Columna | Uso |
-| --- | --- |
-| `producto` | Nombre del producto (obligatoria) |
-| `categoria` | Agrupa páginas (Papelería, Marcadores, etc.) |
-| `subcategoria` | Bloque interno opcional |
-| `cantidades` | Presentación / cantidades (va en la descripción) |
-| `descripcion` | Texto extra opcional |
-| `marca` | Marcas |
-| `tags` | Variantes separadas por coma |
-| `imagen` | URL de foto opcional |
+La revista arma una hoja por categoría (y parte en varias páginas si hay muchos ítems) y pone las presentaciones (`x 24hjs`, `x 30grs`, etc.) en la descripción.
 
-Los productos se **agrupan por nombre** dentro de cada categoría y las cantidades se combinan en la descripción.
+Hay una copia local en `public/catalog/productos.csv` por si el fetch a Google falla por CORS.
 
-Si la planilla no es pública, la app muestra un catálogo de respaldo con la misma estructura visual.
+## Imágenes
+
+Podés poner URL en la columna `Imagen (URL)` o un archivo en `public/catalog/{nombre}.jpg`.

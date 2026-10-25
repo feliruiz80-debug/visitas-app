@@ -2,30 +2,16 @@ import { SEED_PRODUCTS } from "./seed";
 import type { CatalogSource, CategoryGroup, Product } from "./types";
 
 export const SHEET_ID = "177FpyOQyCiRpEtUrTJfFzhsajNO-Tiza3ZRSD60KELw";
+export const SHEET_GID = "2093740033";
+
+/** Cuántos productos por hoja para que no se corte el contenido. */
+export const PRODUCTS_PER_PAGE = 6;
 
 const CSV_URLS = [
-  `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=0`,
-  `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv`,
+  `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${SHEET_GID}`,
+  `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${SHEET_GID}`,
+  "/catalog/productos.csv",
 ];
-
-const NAME_KEYS = ["producto", "product", "nombre", "articulo", "artículo", "item", "name"];
-const CATEGORY_KEYS = ["categoria", "categoría", "category", "rubro", "seccion", "sección", "linea", "línea"];
-const SUB_KEYS = ["subcategoria", "subcategoría", "subcategory", "tipo", "grupo", "familia"];
-const QTY_KEYS = [
-  "cantidades",
-  "cantidad",
-  "presentacion",
-  "presentación",
-  "pack",
-  "unidad",
-  "unidades",
-  "qty",
-  "quantity",
-];
-const DESC_KEYS = ["descripcion", "descripción", "description", "detalle", "obs", "observaciones"];
-const BRAND_KEYS = ["marca", "brand", "marcas"];
-const TAG_KEYS = ["tags", "tag", "variantes", "variante", "colores", "color", "etiquetas"];
-const IMAGE_KEYS = ["imagen", "image", "foto", "url", "foto_url", "image_url"];
 
 function norm(value: string) {
   return value
@@ -33,24 +19,6 @@ function norm(value: string) {
     .replace(/[\u0300-\u036f]/g, "")
     .trim()
     .toLowerCase();
-}
-
-function pick(row: Record<string, string>, keys: string[]) {
-  const entries = Object.entries(row);
-  for (const key of keys) {
-    const hit = entries.find(([header]) => norm(header) === key || norm(header).includes(key));
-    if (hit?.[1]?.trim()) return hit[1].trim();
-  }
-  return "";
-}
-
-function splitTags(raw: string) {
-  if (!raw) return [];
-  return raw
-    .split(/[,;/|]+/)
-    .map((part) => part.trim())
-    .filter(Boolean)
-    .map((part) => part.toUpperCase());
 }
 
 function parseCsv(text: string): string[][] {
@@ -98,86 +66,97 @@ function parseCsv(text: string): string[][] {
   return rows.filter((parts) => parts.some((part) => part.trim()));
 }
 
-function rowsToProducts(rows: string[][]): Product[] {
-  if (rows.length < 2) return [];
-  const headers = rows[0].map((header) => header.trim());
+function titleCaseCategory(label: string) {
+  const upper = label.trim().toUpperCase();
+  const known: Record<string, string> = {
+    PAPELERIA: "Papelería",
+    "ADHESIVOS ESCOLARES": "Adhesivos Escolares",
+    "TEMPERAS ESCOLARES": "Témperas Escolares",
+    "PINCELES ESCOLARES": "Pinceles Escolares",
+    "MASAS Y PLASTILINAS": "Masas y Plastilinas",
+    MARCADORES: "Marcadores",
+  };
+  return known[upper] ?? label.trim().replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+/** Saca presentaciones tipo "x 24hjs", "x 30grs", "50 x 70cm" del nombre. */
+export function extractPresentation(name: string): { title: string; quantities: string } {
+  const packs = name.match(/\bx\s*[\d.,]+\s*[a-zA-Záéíóúñ°º.]*\b/gi) ?? [];
+  const sizes = name.match(/\b\d+\s*x\s*\d+\s*(?:cm|mts?|m)?\b/gi) ?? [];
+  const kilos = name.match(/\bx\s*\d+\s*kilos?\b/gi) ?? [];
+  const parts = [...new Set([...packs, ...sizes, ...kilos].map((p) => p.trim()))];
+
+  let title = name.trim();
+  for (const part of parts) {
+    title = title.replace(part, " ").replace(/\s{2,}/g, " ").trim();
+  }
+  title = title.replace(/[,\-–—]\s*$/, "").trim() || name.trim();
+
+  const quantities = parts.length ? `Presentación: ${parts.join(" · ")}` : "";
+
+  return { title, quantities };
+}
+
+function isHeaderRow(cells: string[]) {
+  const joined = cells.map(norm).join("|");
+  return joined.includes("codigo") && joined.includes("producto");
+}
+
+function isCategoryRow(codigo: string, producto: string, precio: string) {
+  return !codigo && Boolean(producto) && !precio;
+}
+
+/**
+ * Planilla Sofia: filas de categoría (solo nombre en Producto)
+ * y filas de ítem (Código, Cantidad, Producto, Precio, Total, Imagen).
+ */
+export function parseCategorizedSheet(rows: string[][]): Product[] {
   const products: Product[] = [];
+  let category = "Escolar";
+  let started = false;
 
-  for (let i = 1; i < rows.length; i += 1) {
-    const values = rows[i];
-    const record: Record<string, string> = {};
-    headers.forEach((header, index) => {
-      record[header || `col_${index}`] = (values[index] ?? "").trim();
-    });
+  for (let i = 0; i < rows.length; i += 1) {
+    const raw = rows[i];
+    const cells = [0, 1, 2, 3, 4, 5].map((index) => (raw[index] ?? "").trim());
+    const [codigo, , producto, precio, , imagen] = cells;
 
-    const name = pick(record, NAME_KEYS);
-    if (!name) continue;
-
-    const quantities = pick(record, QTY_KEYS);
-    const descriptionRaw = pick(record, DESC_KEYS);
-    const description = buildDescription(descriptionRaw, quantities);
-
-    products.push({
-      id: `sheet-${i}-${norm(name).replace(/\s+/g, "-")}`,
-      name,
-      category: pick(record, CATEGORY_KEYS) || "Escolar",
-      subcategory: pick(record, SUB_KEYS) || undefined,
-      quantities: quantities || description,
-      description,
-      brand: pick(record, BRAND_KEYS) || undefined,
-      tags: splitTags(pick(record, TAG_KEYS)),
-      image: pick(record, IMAGE_KEYS) || undefined,
-    });
-  }
-
-  return groupByProduct(products);
-}
-
-function buildDescription(description: string, quantities: string) {
-  if (quantities && description) {
-    if (norm(description).includes(norm(quantities))) return description;
-    return `${description} · ${quantities}`;
-  }
-  if (quantities) {
-    if (/presentaci/i.test(quantities)) return quantities;
-    return `Presentación: ${quantities}`;
-  }
-  return description || "Consultar presentación";
-}
-
-/** Une filas del mismo producto y combina cantidades en la descripción. */
-export function groupByProduct(products: Product[]): Product[] {
-  const map = new Map<string, Product>();
-
-  for (const product of products) {
-    const key = `${norm(product.category)}::${norm(product.name)}::${norm(product.subcategory ?? "")}`;
-    const existing = map.get(key);
-    if (!existing) {
-      map.set(key, { ...product, tags: [...product.tags] });
+    if (!producto && !codigo) continue;
+    if (isHeaderRow(cells)) {
+      started = true;
       continue;
     }
 
-    const qtyParts = new Set(
-      [existing.quantities, product.quantities]
-        .flatMap((value) => value.split(/[·|,;/]+/))
-        .map((part) => part.replace(/^presentaci[oó]n:?\s*/i, "").trim())
-        .filter(Boolean),
-    );
-    const quantities = [...qtyParts].join(" · ");
-    const tags = [...new Set([...existing.tags, ...product.tags])];
-    const brands = [...new Set([existing.brand, product.brand].filter(Boolean) as string[])];
+    // Antes del header, ignorar filas vacías de título
+    if (!started && !codigo && producto && !precio) {
+      // Puede ser categoría antes del header; aceptar igual
+    }
 
-    map.set(key, {
-      ...existing,
+    if (isCategoryRow(codigo, producto, precio)) {
+      category = titleCaseCategory(producto);
+      started = true;
+      continue;
+    }
+
+    if (!producto) continue;
+    // Sin código pero con precio raro: saltar
+    if (!codigo && !precio) continue;
+
+    const { title, quantities } = extractPresentation(producto);
+    const slug = norm(`${category}-${codigo || i}-${title}`).replace(/[^a-z0-9]+/g, "-");
+
+    products.push({
+      id: `sheet-${slug}`,
+      code: codigo || undefined,
+      name: title,
+      category,
       quantities,
-      description: buildDescription(existing.description.replace(/ · .*$/, ""), quantities),
-      tags,
-      brand: brands.join(" · ") || existing.brand,
-      image: existing.image || product.image,
+      description: quantities,
+      tags: [],
+      image: imagen || undefined,
     });
   }
 
-  return [...map.values()];
+  return products;
 }
 
 export function groupByCategory(products: Product[]): CategoryGroup[] {
@@ -201,21 +180,47 @@ export function groupByCategory(products: Product[]): CategoryGroup[] {
   }));
 }
 
+/** Parte cada categoría en hojas de N productos. */
+export function paginateCategories(
+  groups: CategoryGroup[],
+  perPage = PRODUCTS_PER_PAGE,
+): CategoryGroup[] {
+  const pages: CategoryGroup[] = [];
+
+  for (const group of groups) {
+    const chunks: Product[][] = [];
+    for (let i = 0; i < group.products.length; i += perPage) {
+      chunks.push(group.products.slice(i, i + perPage));
+    }
+    const parts = Math.max(1, chunks.length);
+    chunks.forEach((products, index) => {
+      pages.push({
+        ...group,
+        key: `${group.key}--p${index + 1}`,
+        products,
+        part: index + 1,
+        parts,
+      });
+    });
+  }
+
+  return pages;
+}
+
+function withLocalImage(product: Product): Product {
+  if (product.image) return product;
+  const slug = norm(product.name).replace(/[^a-z0-9]+/g, "-");
+  return { ...product, image: `/catalog/${slug}.jpg` };
+}
+
 async function fetchCsv(url: string) {
-  const response = await fetch(url, { redirect: "follow" });
+  const response = await fetch(url, { redirect: "follow", cache: "no-store" });
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
   const text = await response.text();
   if (text.includes("<!DOCTYPE html") || text.includes("<html")) {
     throw new Error("La planilla requiere acceso (no pública).");
   }
   return text;
-}
-
-/** Si no hay URL en la planilla, busca public/catalog/{slug}.jpg */
-function withLocalImage(product: Product): Product {
-  if (product.image) return product;
-  const slug = product.id.replace(/^sheet-\d+-/, "");
-  return { ...product, image: `/catalog/${slug}.jpg` };
 }
 
 export async function loadCatalog(): Promise<{
@@ -226,24 +231,19 @@ export async function loadCatalog(): Promise<{
   for (const url of CSV_URLS) {
     try {
       const text = await fetchCsv(url);
-      const products = rowsToProducts(parseCsv(text)).map(withLocalImage);
-      if (products.length === 0) {
-        return {
-          products: groupByProduct(SEED_PRODUCTS).map(withLocalImage),
-          source: "seed",
-          notice: "La planilla respondió vacía. Mostramos el catálogo de respaldo.",
-        };
-      }
-      return { products, source: "sheet" };
+      const rows = parseCsv(text);
+      const products = parseCategorizedSheet(rows).map(withLocalImage);
+      if (products.length === 0) continue;
+      const source: CatalogSource = url.startsWith("/") ? "local" : "sheet";
+      return { products, source };
     } catch {
-      // try next url
+      // try next
     }
   }
 
   return {
-    products: groupByProduct(SEED_PRODUCTS).map(withLocalImage),
+    products: SEED_PRODUCTS.map(withLocalImage),
     source: "seed",
-    notice:
-      "No pude leer la planilla (está privada). Compartila como «Cualquier persona con el enlace» → Lector y se actualiza sola. Mientras tanto ves el catálogo de respaldo.",
+    notice: "No pude leer la planilla. Mostramos el catálogo de respaldo.",
   };
 }

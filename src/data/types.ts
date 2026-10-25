@@ -1,5 +1,6 @@
 export type Product = {
   id: string;
+  code?: string;
   name: string;
   category: string;
   subcategory?: string;
@@ -15,6 +16,9 @@ export type CategoryGroup = {
   label: string;
   section: string;
   products: Product[];
+  /** Parte de una categoría partida en varias páginas (1-based). */
+  part?: number;
+  parts?: number;
 };
 
-export type CatalogSource = "sheet" | "seed";
+export type CatalogSource = "sheet" | "seed" | "local";

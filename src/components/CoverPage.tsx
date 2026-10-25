@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { Logo } from "./Logo";
 
 type CoverPageProps = {
@@ -5,40 +6,52 @@ type CoverPageProps = {
   productCount: number;
 };
 
+const delay = (ms: number): CSSProperties => ({ ["--d" as string]: `${ms}ms` });
+
 export function CoverPage({ onOpen, productCount }: CoverPageProps) {
   return (
     <section className="cover">
       <div className="cover__photo" aria-hidden="true">
         <img src="/catalog/portada.jpg" alt="" />
         <div className="cover__photo-scrim" />
+        <div className="cover__photo-shine" />
       </div>
 
       <div className="cover__panel">
-        <Logo size={86} />
+        <div className="cover__logo reveal" style={delay(0)}>
+          <Logo size={86} />
+        </div>
         <div className="cover__titles">
-          <h1>CATÁLOGO ESCOLAR</h1>
-          <p className="cover__brand">MAYORISTA SOFIA</p>
-          <p className="cover__meta">{productCount} productos · Córdoba</p>
+          <h1 className="reveal" style={delay(80)}>
+            CATÁLOGO ESCOLAR
+          </h1>
+          <p className="cover__brand reveal" style={delay(160)}>
+            MAYORISTA SOFIA
+          </p>
+          <p className="cover__meta reveal" style={delay(230)}>
+            {productCount} productos · Córdoba
+          </p>
         </div>
 
-        <button type="button" className="cover__cta" onClick={onOpen}>
-          Abrir revista
+        <button type="button" className="cover__cta reveal" style={delay(320)} onClick={onOpen}>
+          <span>Abrir revista</span>
+          <span className="cover__cta-glow" aria-hidden="true" />
         </button>
 
         <ul className="cover__perks">
-          <li>
+          <li className="reveal" style={delay(400)}>
             <span className="perk perk--navy" aria-hidden="true">
               <CartIcon />
             </span>
             <span>VARIEDAD MARCAS</span>
           </li>
-          <li>
+          <li className="reveal" style={delay(480)}>
             <span className="perk perk--orange" aria-hidden="true">
               <TruckIcon />
             </span>
             <span>ENVÍOS A TODO EL PAÍS</span>
           </li>
-          <li>
+          <li className="reveal" style={delay(560)}>
             <span className="perk perk--white" aria-hidden="true">
               <PeopleIcon />
             </span>

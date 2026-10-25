@@ -35,16 +35,16 @@ export function CategoryPage({ group, pageNumber }: CategoryPageProps) {
               </div>
             ) : null}
             <div className={`product-grid ${products.length <= 2 ? "product-grid--wide" : ""}`}>
-              {products.map((product) => (
-                <ProductCard key={product.id} product={product} />
+              {products.map((product, index) => (
+                <ProductCard key={product.id} product={product} index={index} />
               ))}
             </div>
           </section>
         ))
       ) : (
         <div className={`product-grid ${group.products.length <= 2 ? "product-grid--wide" : ""}`}>
-          {group.products.map((product) => (
-            <ProductCard key={product.id} product={product} />
+          {group.products.map((product, index) => (
+            <ProductCard key={product.id} product={product} index={index} />
           ))}
         </div>
       )}

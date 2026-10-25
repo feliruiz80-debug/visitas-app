@@ -1,18 +1,23 @@
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import type { Product } from "../data/types";
 
 type ProductCardProps = {
   product: Product;
+  index?: number;
 };
 
-export function ProductCard({ product }: ProductCardProps) {
+export function ProductCard({ product, index = 0 }: ProductCardProps) {
   const initial = product.name.trim().charAt(0).toUpperCase();
   const [broken, setBroken] = useState(false);
   const showImage = Boolean(product.image) && !broken;
   const fileName = (product.image?.split("/").pop() || `${product.id}.jpg`).split("?")[0];
+  const style = {
+    ["--i" as string]: index,
+    ["--d" as string]: `${Math.min(index, 8) * 55}ms`,
+  } as CSSProperties;
 
   return (
-    <article className="product-card">
+    <article className="product-card reveal-card" style={style}>
       <div className="product-card__media" aria-hidden="true">
         {showImage ? (
           <img src={product.image} alt="" loading="lazy" onError={() => setBroken(true)} />

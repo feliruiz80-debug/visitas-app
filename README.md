@@ -1,6 +1,6 @@
-# Visitas
+# Catálogo Escolar · Mayorista Sofia
 
-Mapa para armar salidas comerciales y ofrecer productos de librería.
+Revista digital con el estilo del catálogo físico de Librería Mayorista Sofia.
 
 ## Uso
 
@@ -9,14 +9,29 @@ npm install
 npm run dev
 ```
 
-Abre la dirección que muestra Vite. Por defecto es http://localhost:5173.
+Abrí la URL de Vite (por defecto http://localhost:5173).
 
-## Cómo funciona
+## Base de datos (Google Sheets)
 
-1. Busca tu ciudad o usa tu ubicación.
-2. Dibuja un círculo sobre la zona que vas a recorrer.
-3. Aparece la lista de comercios de esa zona, con los datos que tiene el mapa.
-4. Marca **Visitar** o **Descartar**.
-5. En **Por visitar** queda la lista elegida. Cada comercio tiene un botón para marcarlo como visitado o no.
+La revista lee productos desde esta planilla:
 
-La lista por visitar se guarda en el navegador. Los comercios salen de OpenStreetMap.
+https://docs.google.com/spreadsheets/d/177FpyOQyCiRpEtUrTJfFzhsajNO-Tiza3ZRSD60KELw
+
+Para que se actualice sola, compartila como **Cualquier persona con el enlace → Lector**.
+
+### Columnas sugeridas
+
+| Columna | Uso |
+| --- | --- |
+| `producto` | Nombre del producto (obligatoria) |
+| `categoria` | Agrupa páginas (Papelería, Marcadores, etc.) |
+| `subcategoria` | Bloque interno opcional |
+| `cantidades` | Presentación / cantidades (va en la descripción) |
+| `descripcion` | Texto extra opcional |
+| `marca` | Marcas |
+| `tags` | Variantes separadas por coma |
+| `imagen` | URL de foto opcional |
+
+Los productos se **agrupan por nombre** dentro de cada categoría y las cantidades se combinan en la descripción.
+
+Si la planilla no es pública, la app muestra un catálogo de respaldo con la misma estructura visual.

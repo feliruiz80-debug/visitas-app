@@ -4,7 +4,7 @@ import type { CatalogSource, CategoryGroup, Product } from "./types";
 export const SHEET_ID = "177FpyOQyCiRpEtUrTJfFzhsajNO-Tiza3ZRSD60KELw";
 export const SHEET_GID = "2093740033";
 
-/** Cuántos productos por hoja para que no se corte el contenido. */
+/** Cuántos productos por hoja (grilla cómoda, scrollea si hace falta). */
 export const PRODUCTS_PER_PAGE = 6;
 
 const CSV_URLS = [

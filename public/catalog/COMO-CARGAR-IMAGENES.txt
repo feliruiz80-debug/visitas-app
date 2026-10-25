@@ -1,23 +1,19 @@
-Páginas de la revista
-=====================
+Imágenes digitalizadas
+======================
 
-Las hojas del catálogo físico van en:
+Páginas HTML: se arman desde src/data/digitalCatalog.ts
 
-  public/catalog/pages/
+Fotos de producto (ya digitalizadas):
+  public/catalog/digital/products/{id}.jpg
 
-Archivos actuales:
-  03-papeleria.jpg
-  04-blocks-papel-glace.jpg
-  05-adhesivos.jpg
-  07-temperas-acuarelas.jpg
-  08-pinceles.jpg
-  09-masas-plastilinas.jpg
-  10-marcadores-agua.jpg
-  11-marcadores-permanentes.jpg
+Ejemplos:
+  cartulinas.jpg
+  papel-afiche.jpg
+  adhesivo-barra.jpg
+  tempera-acuarel.jpg
 
-Para agregar la página .06 (u otra):
-1. Subí la foto a public/catalog/pages/ con un nombre claro
-2. Agregala en src/data/pages.ts en el orden correcto
+Para reemplazar una foto por una versión más pro:
+1. Guardá el JPG con el mismo nombre en products/
+2. Recargá la revista
 
-La portada usa public/catalog/portada.jpg
-La página de pedido es la pantalla de contacto de la app.
+No hace falta tocar código si el id ya existe en digitalCatalog.ts.

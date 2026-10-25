@@ -1,45 +1,61 @@
-import { useEffect, useState } from "react";
-import { CatalogPhotoPage } from "./components/CatalogPhotoPage";
+import { useEffect, useMemo, useState } from "react";
 import { ContactPage } from "./components/ContactPage";
 import { CoverPage } from "./components/CoverPage";
+import { DigitalCatalogPage } from "./components/DigitalCatalogPage";
 import { FlipBook } from "./components/FlipBook";
 import { Logo } from "./components/Logo";
-import { CATALOG_SHEETS } from "./data/pages";
+import { DIGITAL_PAGES } from "./data/digitalCatalog";
+
+type Sheet =
+  | { kind: "cover"; id: string; label: string; shortLabel: string }
+  | { kind: "contact"; id: string; label: string; shortLabel: string; pageNumber: string }
+  | { kind: "digital"; id: string; label: string; shortLabel: string; pageIndex: number };
 
 export function App() {
+  const sheets = useMemo<Sheet[]>(
+    () => [
+      { kind: "cover", id: "portada", label: "Portada", shortLabel: "Portada" },
+      { kind: "contact", id: "pedido", label: "Hacé tu pedido", shortLabel: "Pedido", pageNumber: "02" },
+      ...DIGITAL_PAGES.map((page, pageIndex) => ({
+        kind: "digital" as const,
+        id: page.id,
+        label: page.label,
+        shortLabel: page.shortLabel,
+        pageIndex,
+      })),
+    ],
+    [],
+  );
+
   const [pageIndex, setPageIndex] = useState(0);
-  const page = CATALOG_SHEETS[pageIndex] ?? CATALOG_SHEETS[0];
+  const page = sheets[pageIndex] ?? sheets[0];
   const isCover = page?.kind === "cover";
 
   useEffect(() => {
-    CATALOG_SHEETS.forEach((sheet) => {
-      if (!sheet.src) return;
-      const img = new Image();
-      img.src = sheet.src;
+    DIGITAL_PAGES.forEach((digital) => {
+      [digital.hero?.image, ...digital.products.map((item) => item.image)]
+        .filter(Boolean)
+        .forEach((src) => {
+          const img = new Image();
+          img.src = src!;
+        });
     });
   }, []);
 
-  const sheetNodes = CATALOG_SHEETS.map((sheet) => {
+  const sheetNodes = sheets.map((sheet) => {
     if (sheet.kind === "cover") {
       return (
         <CoverPage
           key={sheet.id}
-          productCount={CATALOG_SHEETS.filter((item) => item.kind === "photo").length}
+          productCount={DIGITAL_PAGES.length}
           onOpen={() => setPageIndex(1)}
         />
       );
     }
     if (sheet.kind === "contact") {
-      return <ContactPage key={sheet.id} pageNumber={Number(sheet.pageNumber) || 2} />;
+      return <ContactPage key={sheet.id} pageNumber={Number(sheet.pageNumber)} />;
     }
-    return (
-      <CatalogPhotoPage
-        key={sheet.id}
-        src={sheet.src!}
-        label={sheet.label}
-        pageNumber={sheet.pageNumber}
-      />
-    );
+    return <DigitalCatalogPage key={sheet.id} page={DIGITAL_PAGES[sheet.pageIndex]} />;
   });
 
   return (
@@ -54,14 +70,14 @@ export function App() {
       ) : null}
 
       <main className="stage">
-        <FlipBook pageIndex={pageIndex} pageCount={CATALOG_SHEETS.length} onChange={setPageIndex}>
+        <FlipBook pageIndex={pageIndex} pageCount={sheets.length} onChange={setPageIndex}>
           {sheetNodes}
         </FlipBook>
       </main>
 
       {!isCover ? (
         <nav className="cats-rail" aria-label="Páginas del catálogo">
-          {CATALOG_SHEETS.map((sheet, index) => (
+          {sheets.map((sheet, index) => (
             <button
               key={sheet.id}
               type="button"

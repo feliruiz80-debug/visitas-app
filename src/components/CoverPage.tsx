@@ -29,7 +29,7 @@ export function CoverPage({ onOpen, productCount }: CoverPageProps) {
             MAYORISTA SOFIA
           </p>
           <p className="cover__meta reveal" style={delay(230)}>
-            {productCount} productos · Córdoba
+            {productCount} páginas · Córdoba
           </p>
         </div>
 

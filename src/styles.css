@@ -115,6 +115,21 @@ img {
   opacity: 0.85;
 }
 
+.logo-bar__page {
+  position: absolute;
+  right: 18px;
+  margin: 0;
+  max-width: min(48vw, 280px);
+  color: var(--navy);
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-align: right;
+  line-height: 1.2;
+}
+
 @keyframes topbar-in {
   from {
     opacity: 0;
@@ -164,7 +179,7 @@ img {
 }
 
 .flipbook {
-  width: min(960px, 100%);
+  width: min(720px, 100%);
   display: grid;
   gap: 12px;
   justify-items: center;
@@ -173,7 +188,9 @@ img {
 .flipbook__stage {
   position: relative;
   width: 100%;
-  min-height: min(70dvh, 760px);
+  aspect-ratio: 735 / 1024;
+  max-height: min(78dvh, 900px);
+  min-height: min(58dvh, 640px);
   filter: drop-shadow(0 18px 36px rgba(7, 20, 74, 0.2));
 }
 
@@ -191,12 +208,31 @@ img {
 
 .flipbook__page {
   width: 100%;
-  min-height: min(70dvh, 760px);
+  height: 100%;
 }
 
 .flipbook__page > * {
   width: 100%;
-  min-height: min(70dvh, 760px);
+  height: 100%;
+  min-height: 100%;
+}
+
+.photo-page {
+  width: 100%;
+  height: 100%;
+  background: white;
+  border-radius: 4px 18px 18px 4px;
+  overflow: hidden;
+  border: 1px solid rgba(11, 31, 107, 0.06);
+  border-left: 0;
+}
+
+.photo-page img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center top;
+  background: white;
 }
 
 .flipbook__page.is-enter,
@@ -1000,12 +1036,18 @@ img {
     padding: 6px 10px 8px;
   }
 
-  .flipbook__stage,
-  .flipbook__page,
-  .flipbook__page > *,
+  .flipbook {
+    width: min(100%, 520px);
+  }
+
+  .logo-bar__page {
+    font-size: 0.64rem;
+    max-width: 42vw;
+  }
+
   .mag-page,
   .cover {
-    min-height: min(62dvh, 680px);
+    min-height: 100%;
   }
 
   .mag-page__body {

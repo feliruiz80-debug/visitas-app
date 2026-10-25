@@ -1,6 +1,6 @@
 # Catálogo Escolar · Mayorista Sofia
 
-Revista digital con el estilo del catálogo físico de Librería Mayorista Sofia.
+Revista digital con las páginas reales del catálogo físico y animación de pasar hojas.
 
 ## Uso
 
@@ -13,21 +13,19 @@ Abrí la URL de Vite (por defecto http://localhost:5173).
 
 Pasá las páginas arrastrando la hoja, con los botones o con las flechas del teclado.
 
-## Base de datos (Google Sheets)
+## Páginas
 
-Planilla categorizada (gid `2093740033`):
+Las hojas del catálogo están en `public/catalog/pages/`:
 
-https://docs.google.com/spreadsheets/d/177FpyOQyCiRpEtUrTJfFzhsajNO-Tiza3ZRSD60KELw/edit?gid=2093740033
+| Archivo | Contenido |
+| --- | --- |
+| `03-papeleria.jpg` | Papelería |
+| `04-blocks-papel-glace.jpg` | Blocks y Papel Glacé |
+| `05-adhesivos.jpg` | Adhesivos |
+| `07-temperas-acuarelas.jpg` | Témperas y Acuarelas |
+| `08-pinceles.jpg` | Pinceles |
+| `09-masas-plastilinas.jpg` | Masas y Plastilinas |
+| `10-marcadores-agua.jpg` | Marcadores al agua |
+| `11-marcadores-permanentes.jpg` | Marcadores permanentes / pizarra |
 
-Formato esperado:
-
-- Filas de **categoría** (solo el nombre en la columna Producto), por ejemplo `PAPELERIA`
-- Filas de **producto**: `Código`, `Cantidad`, `Producto`, `Precio unitario`, `Total`, `Imagen (URL)`
-
-La revista arma una hoja por categoría (y parte en varias páginas si hay muchos ítems) y pone las presentaciones (`x 24hjs`, `x 30grs`, etc.) en la descripción.
-
-Hay una copia local en `public/catalog/productos.csv` por si el fetch a Google falla por CORS.
-
-## Imágenes
-
-Podés poner URL en la columna `Imagen (URL)` o un archivo en `public/catalog/{nombre}.jpg`.
+Para sumar o reemplazar una hoja, poné la foto en esa carpeta y registrala en `src/data/pages.ts`.

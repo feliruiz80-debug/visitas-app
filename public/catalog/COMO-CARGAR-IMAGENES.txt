@@ -1,20 +1,23 @@
-Cómo cargar las fotos de productos
-=================================
+Páginas de la revista
+=====================
 
-1. Poné cada imagen en esta carpeta: public/catalog/
-2. Nombrala igual que el id del producto, por ejemplo:
-   - cartulina-lisos.jpg
-   - papel-afiche.jpg
-   - temperas-escolares.jpg
+Las hojas del catálogo físico van en:
 
-3. Formatos: .jpg (recomendado), también podés usar URL en la columna "imagen" de la planilla.
+  public/catalog/pages/
 
-4. Portada y páginas especiales ya usan:
-   - portada.jpg
-   - pedido-papeleria.jpg
-   - blocks-adhesivos.jpg
-   - marcadores.jpg
-   - pinceles-masas.jpg
-   - temperas.jpg
+Archivos actuales:
+  03-papeleria.jpg
+  04-blocks-papel-glace.jpg
+  05-adhesivos.jpg
+  07-temperas-acuarelas.jpg
+  08-pinceles.jpg
+  09-masas-plastilinas.jpg
+  10-marcadores-agua.jpg
+  11-marcadores-permanentes.jpg
 
-Hasta que subas la foto, la revista muestra un placeholder con el nombre de archivo esperado.
+Para agregar la página .06 (u otra):
+1. Subí la foto a public/catalog/pages/ con un nombre claro
+2. Agregala en src/data/pages.ts en el orden correcto
+
+La portada usa public/catalog/portada.jpg
+La página de pedido es la pantalla de contacto de la app.

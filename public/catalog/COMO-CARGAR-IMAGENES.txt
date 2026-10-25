@@ -1,19 +1,12 @@
-Imágenes digitalizadas
-======================
+Fotos de la revista
+===================
 
-Páginas HTML: se arman desde src/data/digitalCatalog.ts
+Las páginas usan fotos reales del catálogo, mejoradas, en:
 
-Fotos de producto (ya digitalizadas):
-  public/catalog/digital/products/{id}.jpg
+  public/catalog/pages/
 
-Ejemplos:
-  cartulinas.jpg
-  papel-afiche.jpg
-  adhesivo-barra.jpg
-  tempera-acuarel.jpg
+No son ilustraciones: es la misma foto, con nitidez / contraste / blanco limpio.
 
-Para reemplazar una foto por una versión más pro:
-1. Guardá el JPG con el mismo nombre en products/
-2. Recargá la revista
-
-No hace falta tocar código si el id ya existe en digitalCatalog.ts.
+Para reemplazar una hoja:
+1. Poné tu JPG en tmp/src-pages/ con el mismo nombre
+2. Corré: python3 scripts/enhance_catalog_photos.py

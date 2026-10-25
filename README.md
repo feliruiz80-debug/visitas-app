@@ -1,6 +1,6 @@
 # Catálogo Escolar · Mayorista Sofia
 
-Revista digital con el estilo del catálogo físico de Librería Mayorista Sofia.
+Revista digital con animación de pasar hojas, al estilo del catálogo físico de Librería Mayorista Sofia.
 
 ## Uso
 
@@ -10,6 +10,18 @@ npm run dev
 ```
 
 Abrí la URL de Vite (por defecto http://localhost:5173).
+
+Pasá las páginas con los botones, deslizando o con las flechas del teclado.
+
+## Imágenes de productos
+
+Colocá las fotos en `public/catalog/` con el nombre del producto, por ejemplo:
+
+- `public/catalog/cartulina-lisos.jpg`
+- `public/catalog/papel-afiche.jpg`
+
+Si no hay foto, la tarjeta muestra un placeholder con el nombre de archivo esperado.
+También podés poner una URL en la columna `imagen` de la planilla.
 
 ## Base de datos (Google Sheets)
 

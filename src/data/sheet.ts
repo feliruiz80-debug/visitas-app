@@ -211,6 +211,13 @@ async function fetchCsv(url: string) {
   return text;
 }
 
+/** Si no hay URL en la planilla, busca public/catalog/{slug}.jpg */
+function withLocalImage(product: Product): Product {
+  if (product.image) return product;
+  const slug = product.id.replace(/^sheet-\d+-/, "");
+  return { ...product, image: `/catalog/${slug}.jpg` };
+}
+
 export async function loadCatalog(): Promise<{
   products: Product[];
   source: CatalogSource;
@@ -219,10 +226,10 @@ export async function loadCatalog(): Promise<{
   for (const url of CSV_URLS) {
     try {
       const text = await fetchCsv(url);
-      const products = rowsToProducts(parseCsv(text));
+      const products = rowsToProducts(parseCsv(text)).map(withLocalImage);
       if (products.length === 0) {
         return {
-          products: groupByProduct(SEED_PRODUCTS),
+          products: groupByProduct(SEED_PRODUCTS).map(withLocalImage),
           source: "seed",
           notice: "La planilla respondió vacía. Mostramos el catálogo de respaldo.",
         };
@@ -234,7 +241,7 @@ export async function loadCatalog(): Promise<{
   }
 
   return {
-    products: groupByProduct(SEED_PRODUCTS),
+    products: groupByProduct(SEED_PRODUCTS).map(withLocalImage),
     source: "seed",
     notice:
       "No pude leer la planilla (está privada). Compartila como «Cualquier persona con el enlace» → Lector y se actualiza sola. Mientras tanto ves el catálogo de respaldo.",

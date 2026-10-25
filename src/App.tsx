@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { CategoryPage } from "./components/CategoryPage";
 import { ContactPage } from "./components/ContactPage";
 import { CoverPage } from "./components/CoverPage";
+import { FlipBook } from "./components/FlipBook";
 import { IndexPage } from "./components/IndexPage";
 import { groupByCategory, loadCatalog } from "./data/sheet";
 import type { CatalogSource, CategoryGroup, Product } from "./data/types";
@@ -66,14 +67,23 @@ export function App() {
   const page = pages[pageIndex] ?? pages[0];
   const isCover = page?.kind === "cover";
 
-  function go(delta: number) {
-    setPageIndex((current) => Math.min(pages.length - 1, Math.max(0, current + delta)));
-  }
-
   function jumpToCategory(categoryKey: string) {
     const index = pages.findIndex((item) => item.kind === "category" && item.group.key === categoryKey);
     if (index >= 0) setPageIndex(index);
   }
+
+  const sheetNodes = pages.map((item) => {
+    if (item.kind === "cover") {
+      return <CoverPage key="cover" productCount={products.length} onOpen={() => setPageIndex(1)} />;
+    }
+    if (item.kind === "contact") {
+      return <ContactPage key="contact" pageNumber={item.pageNumber} />;
+    }
+    if (item.kind === "index") {
+      return <IndexPage key="index" groups={groups} pageNumber={item.pageNumber} onJump={jumpToCategory} />;
+    }
+    return <CategoryPage key={item.group.key} group={item.group} pageNumber={item.pageNumber} />;
+  });
 
   return (
     <div className={`app ${isCover ? "app--cover" : ""}`}>
@@ -83,7 +93,7 @@ export function App() {
             <span className="topbar__mark">S</span>
             <span>
               <strong>Mayorista Sofia</strong>
-              <small>Catálogo escolar</small>
+              <small>Revista digital</small>
             </span>
           </button>
 
@@ -120,45 +130,16 @@ export function App() {
       <main className="stage">
         {loading ? (
           <div className="loading">Armando la revista…</div>
-        ) : page?.kind === "cover" ? (
-          <CoverPage productCount={products.length} onOpen={() => setPageIndex(1)} />
-        ) : page?.kind === "contact" ? (
-          <ContactPage pageNumber={page.pageNumber} />
-        ) : page?.kind === "index" ? (
-          <IndexPage groups={groups} pageNumber={page.pageNumber} onJump={jumpToCategory} />
-        ) : page?.kind === "category" ? (
-          <CategoryPage group={page.group} pageNumber={page.pageNumber} />
-        ) : (
+        ) : pages.length === 0 ? (
           <div className="loading">No hay productos para mostrar.</div>
+        ) : (
+          <FlipBook pageIndex={pageIndex} pageCount={pages.length} onChange={setPageIndex}>
+            {sheetNodes}
+          </FlipBook>
         )}
       </main>
 
       {!isCover && !loading ? (
-        <nav className="pager" aria-label="Navegación de la revista">
-          <button type="button" onClick={() => go(-1)} disabled={pageIndex <= 0}>
-            Anterior
-          </button>
-          <div className="pager__dots" aria-hidden="true">
-            {pages.map((item, index) => (
-              <button
-                key={`${item.kind}-${index}`}
-                type="button"
-                className={index === pageIndex ? "is-active" : ""}
-                onClick={() => setPageIndex(index)}
-                aria-label={`Ir a página ${index + 1}`}
-              />
-            ))}
-          </div>
-          <p className="pager__label">
-            {pageIndex + 1} / {pages.length}
-          </p>
-          <button type="button" onClick={() => go(1)} disabled={pageIndex >= pages.length - 1}>
-            Siguiente
-          </button>
-        </nav>
-      ) : null}
-
-      {!isCover ? (
         <div className="cats-rail" aria-label="Categorías">
           <button type="button" className={page?.kind === "contact" ? "is-active" : ""} onClick={() => setPageIndex(1)}>
             Pedido

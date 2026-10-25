@@ -1,0 +1,20 @@
+Cómo cargar las fotos de productos
+=================================
+
+1. Poné cada imagen en esta carpeta: public/catalog/
+2. Nombrala igual que el id del producto, por ejemplo:
+   - cartulina-lisos.jpg
+   - papel-afiche.jpg
+   - temperas-escolares.jpg
+
+3. Formatos: .jpg (recomendado), también podés usar URL en la columna "imagen" de la planilla.
+
+4. Portada y páginas especiales ya usan:
+   - portada.jpg
+   - pedido-papeleria.jpg
+   - blocks-adhesivos.jpg
+   - marcadores.jpg
+   - pinceles-masas.jpg
+   - temperas.jpg
+
+Hasta que subas la foto, la revista muestra un placeholder con el nombre de archivo esperado.

@@ -16,6 +16,8 @@ import {
 
 const STORAGE_KEY = "sofia-lista-pedido-v1";
 const EXAMPLES = ["témpera alba", "mochila", "abrochadora", "cuaderno", "marcador", "E0260"];
+const PHONE_DISPLAY = "351 786-5153";
+const PHONE_HREF = "tel:+543517865153";
 
 type Line = {
   code: string;
@@ -50,10 +52,10 @@ function loadLines(): Line[] {
 }
 
 function useRowHeight(): number {
-  const [height, setHeight] = useState(84);
+  const [height, setHeight] = useState(96);
   useEffect(() => {
     const query = window.matchMedia("(max-width: 720px)");
-    const apply = () => setHeight(query.matches ? 104 : 84);
+    const apply = () => setHeight(query.matches ? 118 : 96);
     apply();
     query.addEventListener("change", apply);
     return () => query.removeEventListener("change", apply);
@@ -223,6 +225,7 @@ export function App() {
     const text = [
       "Pedido · Librería Mayorista Sofía",
       `Lista del ${fecha} · precios con impuestos`,
+      `Tel. ${PHONE_DISPLAY}`,
       "",
       ...body,
       "",
@@ -243,22 +246,43 @@ export function App() {
   return (
     <div className="app">
       <header className="top">
-        <div className="brand">
-          <span className="mark" aria-hidden="true">
-            S
-          </span>
-          <div>
-            <p className="eyebrow">Librería mayorista</p>
-            <h1>Sofía</h1>
+        <div className="top-inner">
+          <div className="brand">
+            <button
+              type="button"
+              className="logo-button"
+              aria-label="Volver al inicio"
+              onClick={() => {
+                setQuery("");
+                setCategory("todas");
+              }}
+            >
+              <img src="/logo-sofia.png" alt="" className="logo" />
+            </button>
+            <h1 className="wordmark">
+              <span className="wordmark-kicker">Librería mayorista</span>
+              <span className="wordmark-name">Sofia</span>
+            </h1>
+          </div>
+          <div className="top-actions">
+            <a className="phone" href={PHONE_HREF}>
+              {PHONE_DISPLAY}
+            </a>
+            <button type="button" className="order-launch" onClick={() => setDrawer(true)}>
+              <span className="bubble bubble-navy" aria-hidden="true">
+                <CartIcon />
+              </span>
+              <span className="order-copy">
+                <span>Pedido</span>
+                {orderCount > 0 ? <em>{formatMoney(orderTotal)}</em> : null}
+              </span>
+              {orderCount > 0 ? <strong>{orderCount}</strong> : null}
+            </button>
           </div>
         </div>
-        <button type="button" className="order-launch" onClick={() => setDrawer(true)}>
-          <span>Pedido</span>
-          {orderCount > 0 ? <strong>{orderCount}</strong> : null}
-          {orderCount > 0 ? <em className="order-total">{formatMoney(orderTotal)}</em> : null}
-        </button>
       </header>
 
+      <div className="shell">
       <div className="finder">
         <form
           className="search"
@@ -347,13 +371,30 @@ export function App() {
           </div>
         ) : !browsing ? (
           <section className="home">
-            <div className="home-copy">
-              <h2>Buscá en la lista del mostrador.</h2>
-              <p>
-                Escribí un nombre, una marca o un código. Después podés armar el pedido y copiarlo.
-                Las fotos las sumamos más adelante.
-              </p>
-            </div>
+            <SectionHead title="Lista de precios" />
+            <p className="home-lead">
+              Librería escolar mayorista de Córdoba. Buscá por nombre, marca o código y armá el pedido.
+            </p>
+            <ul className="promises">
+              <li>
+                <span className="bubble bubble-navy" aria-hidden="true">
+                  <CartIcon />
+                </span>
+                Variedad de marcas
+              </li>
+              <li>
+                <span className="bubble bubble-orange" aria-hidden="true">
+                  <TruckIcon />
+                </span>
+                Envíos a todo el país
+              </li>
+              <li>
+                <span className="bubble bubble-white" aria-hidden="true">
+                  <PeopleIcon />
+                </span>
+                Atención personalizada
+              </li>
+            </ul>
             <div className="examples">
               {EXAMPLES.map((example) => (
                 <button key={example} type="button" onClick={() => setQuery(example)}>
@@ -408,6 +449,7 @@ export function App() {
           </div>
         ) : (
           <section className="results">
+            <SectionHead title={category === "todas" ? "Resultados" : categoryLabel(category)} />
             <div className="results-bar">
               <p>
                 {items.length.toLocaleString("es-AR")}{" "}
@@ -441,6 +483,9 @@ export function App() {
                       style={{ position: "absolute", top: index * rowHeight, height: rowHeight, left: 0, right: 0 }}
                       onMouseEnter={() => setActive(index)}
                     >
+                      <span className="thumb" aria-hidden="true">
+                        {displayName(product.name).charAt(0)}
+                      </span>
                       <div className="row-main">
                         <h3>
                           <Highlight text={displayName(product.name)} query={query} />
@@ -487,9 +532,11 @@ export function App() {
         )}
       </main>
 
-      <footer className="colophon">
-        Librería Mayorista Sofía · Buenos Aires 346 · lista en pesos
+      <footer className="foot">
+        <span>Librería Mayorista Sofía · Córdoba</span>
+        <a href={PHONE_HREF}>{PHONE_DISPLAY}</a>
       </footer>
+      </div>
 
       {drawer ? (
         <div className="drawer-root">
@@ -497,7 +544,7 @@ export function App() {
           <aside className="drawer" role="dialog" aria-modal="true" aria-labelledby="pedido-title">
             <header>
               <div>
-                <p className="eyebrow">Mostrador</p>
+                <p className="eyebrow">Escolar</p>
                 <h2 id="pedido-title">Tu pedido</h2>
               </div>
               <button type="button" className="clear" onClick={() => setDrawer(false)}>
@@ -577,6 +624,78 @@ export function App() {
         </div>
       ) : null}
     </div>
+  );
+}
+
+function SectionHead({ title }: { title: string }) {
+  return (
+    <div className="section-head">
+      <p>Escolar</p>
+      <h2>{title}</h2>
+    </div>
+  );
+}
+
+function CartIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        d="M5 6h15l-1.6 8.2a2 2 0 0 1-2 1.6H8.2a2 2 0 0 1-2-1.6L5 6Z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
+      <path d="M5 6 4.2 3.5H2" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      <circle cx="9" cy="19.5" r="1.3" fill="currentColor" />
+      <circle cx="17" cy="19.5" r="1.3" fill="currentColor" />
+    </svg>
+  );
+}
+
+function TruckIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        d="M3 7.5h11v8H3v-8Z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M14 10.5h4.2L21 13.5V15.5h-7"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
+      <circle cx="7.5" cy="17.5" r="1.5" fill="currentColor" />
+      <circle cx="17.5" cy="17.5" r="1.5" fill="currentColor" />
+    </svg>
+  );
+}
+
+function PeopleIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <circle cx="9" cy="8" r="2.2" fill="none" stroke="currentColor" strokeWidth="1.8" />
+      <circle cx="16" cy="8.5" r="1.8" fill="none" stroke="currentColor" strokeWidth="1.8" />
+      <path
+        d="M4.8 17.5c.6-2.4 2.4-3.6 4.2-3.6s3.6 1.2 4.2 3.6"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+      <path
+        d="M13.2 14.2c1.2-.5 2.4-.5 3.4.1 1.2.8 1.8 2 2.1 3.2"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+    </svg>
   );
 }
 

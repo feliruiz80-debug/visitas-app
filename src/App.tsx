@@ -18,6 +18,7 @@ const STORAGE_KEY = "sofia-lista-pedido-v1";
 const EXAMPLES = ["témpera alba", "mochila", "abrochadora", "cuaderno", "marcador", "E0260"];
 const PHONE_DISPLAY = "351 786-5153";
 const PHONE_HREF = "tel:+543517865153";
+const WHATSAPP = "5493517865153";
 
 type Line = {
   code: string;
@@ -215,7 +216,7 @@ export function App() {
     notify(ok ? "Código copiado" : "No pude copiar el código");
   }
 
-  async function copyOrder() {
+  function sendOrder() {
     if (!catalog || lines.length === 0) return;
     const fecha = formatFecha(catalog.fecha);
     const body = lines.map((line) => {
@@ -225,7 +226,6 @@ export function App() {
     const text = [
       "Pedido · Librería Mayorista Sofía",
       `Lista del ${fecha} · precios con impuestos`,
-      `Tel. ${PHONE_DISPLAY}`,
       "",
       ...body,
       "",
@@ -234,8 +234,9 @@ export function App() {
     ]
       .filter((line, index, all) => line !== "" || index !== all.length - 1)
       .join("\n");
-    const ok = await copyText(text);
-    notify(ok ? "Pedido copiado" : "No pude copiar el pedido");
+    const url = `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(text)}`;
+    const opened = window.open(url, "_blank", "noopener,noreferrer");
+    if (!opened) window.location.href = url;
   }
 
   const fecha = catalog ? formatFecha(catalog.fecha) : "";
@@ -483,9 +484,6 @@ export function App() {
                       style={{ position: "absolute", top: index * rowHeight, height: rowHeight, left: 0, right: 0 }}
                       onMouseEnter={() => setActive(index)}
                     >
-                      <span className="thumb" aria-hidden="true">
-                        <img src="/logo-sofia.png" alt="" />
-                      </span>
                       <div className="row-main">
                         <h3>
                           <Highlight text={displayName(product.name)} query={query} />
@@ -542,9 +540,16 @@ export function App() {
         <a className="dock-phone" href={PHONE_HREF}>
           {PHONE_DISPLAY}
         </a>
-        <button type="button" className="dock-order" onClick={() => setDrawer(true)}>
+        <button
+          type="button"
+          className="dock-order"
+          onClick={() => {
+            if (orderCount > 0) sendOrder();
+            else setDrawer(true);
+          }}
+        >
           <CartIcon />
-          <span>{orderCount > 0 ? `Pedido · ${orderCount}` : "Pedido"}</span>
+          <span>{orderCount > 0 ? "Enviar pedido" : "Pedido"}</span>
           {orderCount > 0 ? <em>{formatMoney(orderTotal)}</em> : null}
         </button>
       </div>
@@ -604,8 +609,8 @@ export function App() {
                 </p>
               ) : null}
               <div className="drawer-actions">
-                <button type="button" className="add add-wide" onClick={copyOrder} disabled={lines.length === 0}>
-                  Copiar pedido
+                <button type="button" className="add add-wide" onClick={sendOrder} disabled={lines.length === 0}>
+                  Enviar pedido
                 </button>
                 <button
                   type="button"

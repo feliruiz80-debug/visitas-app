@@ -372,7 +372,7 @@ a { color: inherit; }
 
 .row {
   display: grid;
-  grid-template-columns: 52px minmax(0, 1fr) auto auto;
+  grid-template-columns: minmax(0, 1fr) auto auto;
   column-gap: 12px;
   align-items: center;
   padding: 0 14px;
@@ -380,23 +380,6 @@ a { color: inherit; }
 }
 
 .row.is-active { background: #f3f7fc; }
-
-.thumb {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  background: #fff;
-  display: grid;
-  place-items: center;
-  overflow: hidden;
-}
-
-.thumb img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  display: block;
-}
 
 .row-main { min-width: 0; }
 
@@ -769,16 +752,15 @@ a:focus-visible {
     border-radius: 16px;
   }
   .row {
-    grid-template-columns: 40px minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr) auto;
     grid-template-areas:
-      "thumb main price"
-      "thumb meta action";
+      "main price"
+      "meta action";
     column-gap: 10px;
     padding: 0 12px;
     overflow: hidden;
     align-content: center;
   }
-  .thumb { grid-area: thumb; width: 40px; height: 40px; align-self: center; }
   .row-main { display: contents; }
   .row-main h3 {
     grid-area: main;

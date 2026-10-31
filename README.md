@@ -1,6 +1,6 @@
 # Lista de precios · Librería Mayorista Sofía
 
-Buscador de la lista mayorista del 6 de octubre de 2026. Se busca por nombre, marca o código, se filtra por rubro y se arma un pedido para copiar.
+Buscador de la lista mayorista del 6 de octubre de 2026. Se busca por nombre, marca o código, se filtra por rubro y se arma un pedido que se envía por WhatsApp al 351 7865153.
 
 Los precios salen de la lista vigente, en pesos y con impuestos. Las fotos se pueden sumar después.
 

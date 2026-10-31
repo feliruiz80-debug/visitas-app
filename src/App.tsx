@@ -16,8 +16,6 @@ import {
 
 const STORAGE_KEY = "sofia-lista-pedido-v1";
 const EXAMPLES = ["témpera alba", "mochila", "abrochadora", "cuaderno", "marcador", "E0260"];
-const PHONE_DISPLAY = "351 786-5153";
-const PHONE_HREF = "tel:+543517865153";
 const WHATSAPP = "5493517865153";
 
 type Line = {
@@ -56,7 +54,7 @@ function useRowHeight(): number {
   const [height, setHeight] = useState(96);
   useEffect(() => {
     const query = window.matchMedia("(max-width: 720px)");
-    const apply = () => setHeight(query.matches ? 132 : 96);
+    const apply = () => setHeight(query.matches ? 104 : 80);
     apply();
     query.addEventListener("change", apply);
     return () => query.removeEventListener("change", apply);
@@ -266,9 +264,6 @@ export function App() {
             </h1>
           </div>
           <div className="top-actions">
-            <a className="phone" href={PHONE_HREF}>
-              {PHONE_DISPLAY}
-            </a>
             <button type="button" className="order-launch" onClick={() => setDrawer(true)}>
               <span className="bubble bubble-navy" aria-hidden="true">
                 <CartIcon />
@@ -532,14 +527,10 @@ export function App() {
 
       <footer className="foot">
         <span>Librería Mayorista Sofía · Córdoba</span>
-        <a href={PHONE_HREF}>{PHONE_DISPLAY}</a>
       </footer>
       </div>
 
       <div className="dock">
-        <a className="dock-phone" href={PHONE_HREF}>
-          {PHONE_DISPLAY}
-        </a>
         <button
           type="button"
           className="dock-order"

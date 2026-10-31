@@ -55,7 +55,7 @@ function useRowHeight(): number {
   const [height, setHeight] = useState(96);
   useEffect(() => {
     const query = window.matchMedia("(max-width: 720px)");
-    const apply = () => setHeight(query.matches ? 118 : 96);
+    const apply = () => setHeight(query.matches ? 132 : 96);
     apply();
     query.addEventListener("change", apply);
     return () => query.removeEventListener("change", apply);
@@ -484,7 +484,7 @@ export function App() {
                       onMouseEnter={() => setActive(index)}
                     >
                       <span className="thumb" aria-hidden="true">
-                        {displayName(product.name).charAt(0)}
+                        <img src="/logo-sofia.png" alt="" />
                       </span>
                       <div className="row-main">
                         <h3>
@@ -536,6 +536,17 @@ export function App() {
         <span>Librería Mayorista Sofía · Córdoba</span>
         <a href={PHONE_HREF}>{PHONE_DISPLAY}</a>
       </footer>
+      </div>
+
+      <div className="dock">
+        <a className="dock-phone" href={PHONE_HREF}>
+          {PHONE_DISPLAY}
+        </a>
+        <button type="button" className="dock-order" onClick={() => setDrawer(true)}>
+          <CartIcon />
+          <span>{orderCount > 0 ? `Pedido · ${orderCount}` : "Pedido"}</span>
+          {orderCount > 0 ? <em>{formatMoney(orderTotal)}</em> : null}
+        </button>
       </div>
 
       {drawer ? (

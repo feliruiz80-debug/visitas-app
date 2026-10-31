@@ -16,6 +16,9 @@ import {
 
 const STORAGE_KEY = "sofia-lista-pedido-v1";
 const EXAMPLES = ["témpera alba", "mochila", "abrochadora", "cuaderno", "marcador", "E0260"];
+/** WhatsApp de pedidos: 54 9 351 7865153. */
+const ORDER_WHATSAPP = "5493517865153";
+const ORDER_WHATSAPP_LABEL = "351 7865153";
 
 type Line = {
   code: string;
@@ -26,6 +29,29 @@ type Line = {
 
 function lineKey(line: { code: string; name: string }): string {
   return `${line.code}\u0000${line.name}`;
+}
+
+function buildOrderText(catalog: Catalog, lines: Line[], orderTotal: number, unpriced: number): string {
+  const fecha = formatFecha(catalog.fecha);
+  const body = lines.map((line) => {
+    const total = line.price === 0 ? "sin precio" : formatMoney(line.price * line.qty);
+    return `${line.qty} × ${line.code} — ${displayName(line.name)} — ${total}`;
+  });
+  return [
+    "Pedido · Librería Mayorista Sofía",
+    `Lista del ${fecha} · precios con impuestos`,
+    "",
+    ...body,
+    "",
+    `Total: ${formatMoney(orderTotal)}`,
+    unpriced > 0 ? `${unpriced} ${unpriced === 1 ? "artículo sin precio" : "artículos sin precio"}, fuera del total.` : "",
+  ]
+    .filter((line, index, all) => line !== "" || index !== all.length - 1)
+    .join("\n");
+}
+
+function orderWhatsAppHref(text: string): string {
+  return `https://wa.me/${ORDER_WHATSAPP}?text=${encodeURIComponent(text)}`;
 }
 
 function loadLines(): Line[] {
@@ -213,25 +239,11 @@ export function App() {
     notify(ok ? "Código copiado" : "No pude copiar el código");
   }
 
+  const orderText = catalog && lines.length > 0 ? buildOrderText(catalog, lines, orderTotal, unpriced) : "";
+
   async function copyOrder() {
-    if (!catalog || lines.length === 0) return;
-    const fecha = formatFecha(catalog.fecha);
-    const body = lines.map((line) => {
-      const total = line.price === 0 ? "sin precio" : formatMoney(line.price * line.qty);
-      return `${line.qty} × ${line.code} — ${displayName(line.name)} — ${total}`;
-    });
-    const text = [
-      "Pedido · Librería Mayorista Sofía",
-      `Lista del ${fecha} · precios con impuestos`,
-      "",
-      ...body,
-      "",
-      `Total: ${formatMoney(orderTotal)}`,
-      unpriced > 0 ? `${unpriced} ${unpriced === 1 ? "artículo sin precio" : "artículos sin precio"}, fuera del total.` : "",
-    ]
-      .filter((line, index, all) => line !== "" || index !== all.length - 1)
-      .join("\n");
-    const ok = await copyText(text);
+    if (!orderText) return;
+    const ok = await copyText(orderText);
     notify(ok ? "Pedido copiado" : "No pude copiar el pedido");
   }
 
@@ -350,8 +362,8 @@ export function App() {
             <div className="home-copy">
               <h2>Buscá en la lista del mostrador.</h2>
               <p>
-                Escribí un nombre, una marca o un código. Después podés armar el pedido y copiarlo.
-                Las fotos las sumamos más adelante.
+                Escribí un nombre, una marca o un código. Después podés armar el pedido y enviarlo por
+                WhatsApp al {ORDER_WHATSAPP_LABEL}. Las fotos las sumamos más adelante.
               </p>
             </div>
             <div className="examples">
@@ -545,9 +557,24 @@ export function App() {
                   el total.
                 </p>
               ) : null}
+              <p className="fine">El pedido se envía al WhatsApp {ORDER_WHATSAPP_LABEL}.</p>
               <div className="drawer-actions">
-                <button type="button" className="add add-wide" onClick={copyOrder} disabled={lines.length === 0}>
-                  Copiar pedido
+                {orderText ? (
+                  <a
+                    className="add add-wide"
+                    href={orderWhatsAppHref(orderText)}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Enviar por WhatsApp
+                  </a>
+                ) : (
+                  <button type="button" className="add add-wide" disabled>
+                    Enviar por WhatsApp
+                  </button>
+                )}
+                <button type="button" className="ghost" onClick={copyOrder} disabled={lines.length === 0}>
+                  Copiar
                 </button>
                 <button
                   type="button"

@@ -356,6 +356,15 @@ h1 {
 
 .add { background: var(--stamp); color: white; }
 
+a.add {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font: inherit;
+  text-decoration: none;
+  cursor: pointer;
+}
+
 .add:hover { background: var(--stamp-deep); }
 
 .add:disabled, .ghost:disabled { opacity: 0.45; cursor: default; }
@@ -508,11 +517,12 @@ h1 {
 
 .drawer-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   margin-top: 14px;
 }
 
-.add-wide { flex: 1; min-height: 46px; }
+.add-wide { flex: 1 1 100%; min-height: 46px; }
 
 mark {
   background: #f3c56b;

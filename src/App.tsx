@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import {
   CATEGORIES,
   categoryLabel,
@@ -10,11 +10,13 @@ import {
   runSearch,
   searchText,
   type Catalog,
+  type CategoryId,
   type Product,
   type SortKey,
 } from "./data/catalog";
 
 const STORAGE_KEY = "sofia-lista-pedido-v1";
+const FAVORITES_KEY = "sofia-favoritos-v1";
 const EXAMPLES = ["témpera alba", "mochila", "abrochadora", "cuaderno", "marcador", "E0260"];
 const WHATSAPP = "5493517865153";
 
@@ -25,8 +27,37 @@ type Line = {
   qty: number;
 };
 
+type Favorite = {
+  code: string;
+  name: string;
+  price: number;
+  category: CategoryId;
+};
+
+type Screen = "inicio" | "favoritos";
+
 function lineKey(line: { code: string; name: string }): string {
   return `${line.code}\u0000${line.name}`;
+}
+
+function loadFavorites(): Favorite[] {
+  try {
+    const raw = localStorage.getItem(FAVORITES_KEY);
+    if (!raw) return [];
+    const data = JSON.parse(raw) as unknown;
+    if (!Array.isArray(data)) return [];
+    return data.flatMap((item) => {
+      if (!item || typeof item !== "object") return [];
+      const fav = item as Partial<Favorite>;
+      if (typeof fav.code !== "string" || typeof fav.name !== "string") return [];
+      const price = Number(fav.price);
+      if (!Number.isFinite(price) || price < 0) return [];
+      const category = CATEGORIES.find((entry) => entry.id === fav.category)?.id ?? "otros";
+      return [{ code: fav.code, name: fav.name, price: Math.round(price), category }];
+    });
+  } catch {
+    return [];
+  }
 }
 
 function loadLines(): Line[] {
@@ -69,6 +100,8 @@ export function App() {
   const [category, setCategory] = useState("todas");
   const [sort, setSort] = useState<SortKey>("nombre");
   const [lines, setLines] = useState<Line[]>(loadLines);
+  const [favorites, setFavorites] = useState<Favorite[]>(loadFavorites);
+  const [screen, setScreen] = useState<Screen>("inicio");
   const [drawer, setDrawer] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [active, setActive] = useState(0);
@@ -96,6 +129,10 @@ export function App() {
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(lines));
   }, [lines]);
+
+  useEffect(() => {
+    localStorage.setItem(FAVORITES_KEY, JSON.stringify(favorites));
+  }, [favorites]);
 
   useEffect(() => {
     if (!toast) return;
@@ -144,12 +181,13 @@ export function App() {
       }
       if (event.key === "Escape") {
         if (drawer) setDrawer(false);
+        else if (screen === "favoritos") setScreen("inicio");
         else if (query) setQuery("");
       }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [drawer, query]);
+  }, [drawer, query, screen]);
 
   const qtyByKey = useMemo(() => {
     const map = new Map<string, number>();
@@ -157,12 +195,56 @@ export function App() {
     return map;
   }, [lines]);
 
+  const favoriteKeys = useMemo(() => new Set(favorites.map((item) => lineKey(item))), [favorites]);
+
+  const productByKey = useMemo(() => {
+    const map = new Map<string, Product>();
+    if (!catalog) return map;
+    for (const product of catalog.products) map.set(lineKey(product), product);
+    return map;
+  }, [catalog]);
+
+  const favoriteProducts = useMemo(
+    () =>
+      favorites.map(
+        (item) =>
+          productByKey.get(lineKey(item)) ?? {
+            id: 0,
+            code: item.code,
+            name: item.name,
+            price: item.price,
+            category: item.category,
+            norm: "",
+            codeNorm: "",
+          },
+      ),
+    [favorites, productByKey],
+  );
+
   const orderCount = lines.reduce((sum, line) => sum + line.qty, 0);
   const orderTotal = lines.reduce((sum, line) => sum + line.price * line.qty, 0);
   const unpriced = lines.filter((line) => line.price === 0).length;
 
   function notify(message: string) {
     setToast(message);
+  }
+
+  function goHome() {
+    setScreen("inicio");
+    setQuery("");
+    setCategory("todas");
+    setDrawer(false);
+  }
+
+  function toggleFavorite(product: Product) {
+    const key = lineKey(product);
+    const exists = favoriteKeys.has(key);
+    setFavorites((current) =>
+      exists
+        ? current.filter((item) => lineKey(item) !== key)
+        : [...current, { code: product.code, name: product.name, price: product.price, category: product.category }],
+    );
+    notify(exists ? "Sacado de favoritos" : "Guardado en favoritos");
   }
 
   function add(product: Product) {
@@ -247,15 +329,7 @@ export function App() {
       <header className="top">
         <div className="top-inner">
           <div className="brand">
-            <button
-              type="button"
-              className="logo-button"
-              aria-label="Volver al inicio"
-              onClick={() => {
-                setQuery("");
-                setCategory("todas");
-              }}
-            >
+            <button type="button" className="logo-button" aria-label="Volver al inicio" onClick={goHome}>
               <img src="/logo-sofia.png" alt="" className="logo" />
             </button>
             <h1 className="wordmark">
@@ -285,7 +359,7 @@ export function App() {
           role="search"
           onSubmit={(event) => {
             event.preventDefault();
-            if (items[active]) add(items[active]);
+            if (screen === "inicio" && items[active]) add(items[active]);
           }}
         >
           <label className="sr-only" htmlFor="q">
@@ -300,7 +374,10 @@ export function App() {
             autoCorrect="off"
             spellCheck={false}
             enterKeyHint="search"
-            onChange={(event) => setQuery(event.target.value)}
+            onChange={(event) => {
+              setQuery(event.target.value);
+              setScreen("inicio");
+            }}
             onKeyDown={(event) => {
               if (event.key === "ArrowDown") {
                 event.preventDefault();
@@ -312,7 +389,14 @@ export function App() {
             }}
           />
           {query ? (
-            <button type="button" className="clear" onClick={() => setQuery("")}>
+            <button
+              type="button"
+              className="clear"
+              onClick={() => {
+                setQuery("");
+                setScreen("inicio");
+              }}
+            >
               Borrar
             </button>
           ) : null}
@@ -322,12 +406,16 @@ export function App() {
             ? `${catalog.products.length.toLocaleString("es-AR")} artículos · ${catalog.lista} · ${fecha} · precios con impuestos`
             : "Cargando la lista de precios…"}
         </p>
+        {screen === "inicio" ? (
         <div className="chips" role="tablist" aria-label="Rubros">
           <button
             type="button"
             className="chip"
             aria-pressed={category === "todas"}
-            onClick={() => setCategory("todas")}
+            onClick={() => {
+              setScreen("inicio");
+              setCategory("todas");
+            }}
           >
             Todas
             {browsing && result ? <span>{result.total.toLocaleString("es-AR")}</span> : null}
@@ -341,7 +429,10 @@ export function App() {
                 type="button"
                 className="chip"
                 aria-pressed={category === item.id}
-                onClick={() => setCategory(item.id)}
+                onClick={() => {
+                  setScreen("inicio");
+                  setCategory(item.id);
+                }}
               >
                 {item.label}
                 <span>{count.toLocaleString("es-AR")}</span>
@@ -349,6 +440,7 @@ export function App() {
             );
           })}
         </div>
+        ) : null}
       </div>
 
       <main className="stage">
@@ -365,6 +457,43 @@ export function App() {
             <h2>Abriendo la lista…</h2>
             <p>Son más de dieciséis mil artículos. En un instante está lista para buscar.</p>
           </div>
+        ) : screen === "favoritos" ? (
+          <section className="results">
+            <SectionHead title="Favoritos" />
+            {favoriteProducts.length === 0 ? (
+              <div className="panel empty">
+                <h2>Todavía no hay favoritos.</h2>
+                <p>En cada artículo tocá la estrella y queda guardado en este celular.</p>
+                <button type="button" className="add" onClick={goHome}>
+                  Ir al inicio
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="results-bar">
+                  <p>
+                    {favoriteProducts.length.toLocaleString("es-AR")}{" "}
+                    {favoriteProducts.length === 1 ? "artículo" : "artículos"}
+                  </p>
+                </div>
+                <div className="scroller scroller-flow">
+                  {favoriteProducts.map((product) => (
+                    <ProductRow
+                      key={lineKey(product)}
+                      product={product}
+                      query=""
+                      qty={qtyByKey.get(lineKey(product)) ?? 0}
+                      saved
+                      onCopy={copyCode}
+                      onAdd={add}
+                      onSetQty={setQty}
+                      onToggleFavorite={toggleFavorite}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
+          </section>
         ) : !browsing ? (
           <section className="home">
             <SectionHead title="Lista de precios" />
@@ -473,50 +602,20 @@ export function App() {
                   const qty = qtyByKey.get(lineKey(product)) ?? 0;
                   const selected = index === active;
                   return (
-                    <article
+                    <ProductRow
                       key={product.id}
-                      className={selected ? "row is-active" : "row"}
+                      product={product}
+                      query={query}
+                      qty={qty}
+                      saved={favoriteKeys.has(lineKey(product))}
+                      selected={selected}
                       style={{ position: "absolute", top: index * rowHeight, height: rowHeight, left: 0, right: 0 }}
-                      onMouseEnter={() => setActive(index)}
-                    >
-                      <div className="row-main">
-                        <h3>
-                          <Highlight text={displayName(product.name)} query={query} />
-                        </h3>
-                        <p>
-                          <button type="button" className="code" onClick={() => copyCode(product.code)}>
-                            {product.code}
-                          </button>
-                          <span>{categoryLabel(product.category)}</span>
-                        </p>
-                      </div>
-                      <p className={product.price === 0 ? "price is-missing" : "price"}>{formatPrice(product.price)}</p>
-                      <div className="row-action">
-                        {qty > 0 ? (
-                          <div className="stepper">
-                            <button
-                              type="button"
-                              aria-label={`Quitar uno de ${displayName(product.name)}`}
-                              onClick={() => setQty(product, qty - 1)}
-                            >
-                              −
-                            </button>
-                            <span>{qty}</span>
-                            <button
-                              type="button"
-                              aria-label={`Sumar otro de ${displayName(product.name)}`}
-                              onClick={() => setQty(product, qty + 1)}
-                            >
-                              +
-                            </button>
-                          </div>
-                        ) : (
-                          <button type="button" className="add" onClick={() => add(product)}>
-                            Sumar
-                          </button>
-                        )}
-                      </div>
-                    </article>
+                      onHover={() => setActive(index)}
+                      onCopy={copyCode}
+                      onAdd={add}
+                      onSetQty={setQty}
+                      onToggleFavorite={toggleFavorite}
+                    />
                   );
                 })}
               </div>
@@ -530,20 +629,41 @@ export function App() {
       </footer>
       </div>
 
-      <div className="dock">
+      <nav className="dock" aria-label="Principal">
         <button
           type="button"
-          className="dock-order"
+          className={screen === "inicio" && !drawer ? "dock-tab is-on" : "dock-tab"}
+          aria-current={screen === "inicio" && !drawer ? "page" : undefined}
+          onClick={goHome}
+        >
+          <HomeIcon />
+          <span>Inicio</span>
+        </button>
+        <button
+          type="button"
+          className={screen === "favoritos" && !drawer ? "dock-tab is-on" : "dock-tab"}
+          aria-current={screen === "favoritos" && !drawer ? "page" : undefined}
           onClick={() => {
-            if (orderCount > 0) sendOrder();
-            else setDrawer(true);
+            setScreen("favoritos");
+            setQuery("");
+            setDrawer(false);
           }}
         >
-          <CartIcon />
-          <span>{orderCount > 0 ? "Enviar pedido" : "Pedido"}</span>
-          {orderCount > 0 ? <em>{formatMoney(orderTotal)}</em> : null}
+          <StarIcon filled={screen === "favoritos" && !drawer} />
+          <span>Favoritos</span>
+          {favorites.length > 0 ? <em>{favorites.length > 99 ? "99+" : favorites.length}</em> : null}
         </button>
-      </div>
+        <button
+          type="button"
+          className={drawer ? "dock-tab is-on" : "dock-tab"}
+          aria-current={drawer ? "page" : undefined}
+          onClick={() => setDrawer((open) => !open)}
+        >
+          <CartIcon />
+          <span>Carrito</span>
+          {orderCount > 0 ? <em>{orderCount > 99 ? "99+" : orderCount}</em> : null}
+        </button>
+      </nav>
 
       {drawer ? (
         <div className="drawer-root">
@@ -552,7 +672,7 @@ export function App() {
             <header>
               <div>
                 <p className="eyebrow">Escolar</p>
-                <h2 id="pedido-title">Tu pedido</h2>
+                <h2 id="pedido-title">Carrito</h2>
               </div>
               <button type="button" className="clear" onClick={() => setDrawer(false)}>
                 Cerrar
@@ -634,12 +754,110 @@ export function App() {
   );
 }
 
+function ProductRow({
+  product,
+  query,
+  qty,
+  saved,
+  selected,
+  style,
+  onHover,
+  onCopy,
+  onAdd,
+  onSetQty,
+  onToggleFavorite,
+}: {
+  product: Product;
+  query: string;
+  qty: number;
+  saved: boolean;
+  selected?: boolean;
+  style?: CSSProperties;
+  onHover?: () => void;
+  onCopy: (code: string) => void;
+  onAdd: (product: Product) => void;
+  onSetQty: (product: Product, qty: number) => void;
+  onToggleFavorite: (product: Product) => void;
+}) {
+  const name = displayName(product.name);
+  return (
+    <article className={selected ? "row is-active" : "row"} style={style} onMouseEnter={onHover}>
+      <div className="row-main">
+        <h3>
+          <Highlight text={name} query={query} />
+        </h3>
+        <p>
+          <button type="button" className="code" onClick={() => onCopy(product.code)}>
+            {product.code}
+          </button>
+          <span>{categoryLabel(product.category)}</span>
+        </p>
+      </div>
+      <p className={product.price === 0 ? "price is-missing" : "price"}>{formatPrice(product.price)}</p>
+      <div className="row-action">
+        <button
+          type="button"
+          className={saved ? "star is-on" : "star"}
+          aria-pressed={saved}
+          aria-label={saved ? `Sacar ${name} de favoritos` : `Guardar ${name} en favoritos`}
+          onClick={() => onToggleFavorite(product)}
+        >
+          <StarIcon filled={saved} />
+        </button>
+        {qty > 0 ? (
+          <div className="stepper">
+            <button type="button" aria-label={`Quitar uno de ${name}`} onClick={() => onSetQty(product, qty - 1)}>
+              −
+            </button>
+            <span>{qty}</span>
+            <button type="button" aria-label={`Sumar otro de ${name}`} onClick={() => onSetQty(product, qty + 1)}>
+              +
+            </button>
+          </div>
+        ) : (
+          <button type="button" className="add" onClick={() => onAdd(product)}>
+            Sumar
+          </button>
+        )}
+      </div>
+    </article>
+  );
+}
+
 function SectionHead({ title }: { title: string }) {
   return (
     <div className="section-head">
       <p>Escolar</p>
       <h2>{title}</h2>
     </div>
+  );
+}
+
+function HomeIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6H10v6H5a1 1 0 0 1-1-1v-9.5Z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function StarIcon({ filled = false }: { filled?: boolean }) {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        d="m12 3.2 2.4 4.9 5.4.8-3.9 3.8.9 5.4L12 15.6 7.2 18.1l.9-5.4L4.2 8.9l5.4-.8L12 3.2Z"
+        fill={filled ? "currentColor" : "none"}
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }
 

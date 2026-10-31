@@ -1,0 +1,31 @@
+{
+  "name": "Librería Mayorista Sofía",
+  "short_name": "Sofía",
+  "description": "Lista de precios de Librería Mayorista Sofía.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#024D9A",
+  "theme_color": "#234A99",
+  "lang": "es-AR",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

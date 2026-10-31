@@ -20,6 +20,8 @@
 
 html, body, #root { min-height: 100%; }
 
+html, body { overscroll-behavior-x: none; }
+
 body { margin: 0; background: var(--bg); }
 
 button, input, select { font: inherit; color: inherit; }
@@ -30,7 +32,12 @@ h1, h2, h3, p { margin: 0; }
 
 a { color: inherit; }
 
-.app { padding-bottom: calc(112px + env(safe-area-inset-bottom)); }
+.app {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: calc(112px + env(safe-area-inset-bottom));
+}
 
 .top {
   background: var(--blue);
@@ -162,7 +169,7 @@ a { color: inherit; }
   border: 1.5px solid var(--line);
 }
 
-.shell { padding-top: 18px; }
+.shell { flex: 1; padding-top: 18px; }
 
 .lede {
   margin-top: 10px;
@@ -358,6 +365,8 @@ a { color: inherit; }
   margin-bottom: 8px;
 }
 
+.hint-touch { display: none; }
+
 .scroller {
   max-height: calc(100dvh - 420px);
   min-height: 280px;
@@ -371,6 +380,10 @@ a { color: inherit; }
   position: relative;
   height: auto;
   min-height: 72px;
+}
+
+.scroller-flow .row-face {
+  min-height: 72px;
   padding-top: 8px;
   padding-bottom: 8px;
 }
@@ -378,15 +391,48 @@ a { color: inherit; }
 .scroller-flow { padding-bottom: 88px; }
 
 .row {
+  position: relative;
+  overflow: hidden;
+  border-bottom: 1px solid var(--line);
+  touch-action: pan-y;
+}
+
+.row-face {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto auto;
   column-gap: 12px;
   align-items: center;
+  height: 100%;
   padding: 0 14px;
-  border-bottom: 1px solid var(--line);
+  background: white;
+  position: relative;
+  z-index: 1;
+  transition: transform 180ms ease;
 }
 
-.row.is-active { background: #f3f7fc; }
+.row-face.is-dragging,
+.cart-face.is-dragging { transition: none; }
+
+.row.is-active .row-face { background: #f3f7fc; }
+
+.swipe-bg {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  color: white;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.swipe-bg.is-add { justify-content: flex-start; background: var(--orange); }
+
+.swipe-bg.is-fav { justify-content: flex-end; background: var(--blue); }
+
+.swipe-bg.is-remove { justify-content: flex-end; background: var(--orange); }
+
+.stage { touch-action: pan-y; }
 
 .row-main { min-width: 0; }
 
@@ -588,6 +634,15 @@ a { color: inherit; }
   gap: 12px;
   background: var(--blue);
   color: white;
+  touch-action: none;
+}
+
+.sheet-handle {
+  display: none;
+  width: 42px;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.55);
 }
 
 .drawer .eyebrow {
@@ -612,12 +667,22 @@ a { color: inherit; }
   flex: 1;
 }
 
-.lines li {
+.cart-line {
+  position: relative;
+  overflow: hidden;
+  border-bottom: 1px solid var(--line);
+  touch-action: pan-y;
+}
+
+.cart-face {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 10px;
   padding: 14px 18px;
-  border-bottom: 1px solid var(--line);
+  background: white;
+  position: relative;
+  z-index: 1;
+  transition: transform 180ms ease;
 }
 
 .lines strong {
@@ -846,7 +911,8 @@ a:focus-visible {
   .cat-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
   .cat-card { min-height: 0; padding: 10px; }
   .cat-card strong { font-size: 0.92rem; }
-  .hint { display: none; }
+  .hint-keys { display: none; }
+  .hint-touch { display: block; font-size: 0.72rem; line-height: 1.35; }
   .results-bar { align-items: flex-start; }
   .sort { flex-direction: column; align-items: flex-end; gap: 4px; }
   .scroller {
@@ -855,15 +921,24 @@ a:focus-visible {
     min-height: 240px;
     border-radius: 16px;
   }
-  .row {
+  .row-face {
     grid-template-columns: minmax(0, 1fr) auto;
     grid-template-areas:
       "main price"
       "meta action";
     column-gap: 10px;
     padding: 0 12px;
-    overflow: hidden;
     align-content: center;
+  }
+  .sheet-handle {
+    display: block;
+    grid-column: 1 / -1;
+    justify-self: center;
+  }
+  .drawer > header {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    justify-content: initial;
   }
   .row-main { display: contents; }
   .row-main h3 {

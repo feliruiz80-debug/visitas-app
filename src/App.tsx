@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import {
   CATEGORIES,
   categoryLabel,
@@ -91,6 +91,94 @@ function useRowHeight(): number {
     return () => query.removeEventListener("change", apply);
   }, []);
   return height;
+}
+
+function useSwipeReveal({
+  onLeft,
+  onRight,
+  threshold = 72,
+  max = 112,
+  ignore = "button, a, input, textarea, select",
+}: {
+  onLeft?: () => void;
+  onRight?: () => void;
+  threshold?: number;
+  max?: number;
+  ignore?: string;
+}) {
+  const [offset, setOffset] = useState(0);
+  const [live, setLive] = useState(false);
+  const origin = useRef<{ x: number; y: number; lock: "x" | "no" | null } | null>(null);
+  const offsetRef = useRef(0);
+  const actions = useRef({ onLeft, onRight, threshold, max, ignore });
+  actions.current = { onLeft, onRight, threshold, max, ignore };
+
+  function write(next: number) {
+    offsetRef.current = next;
+    setOffset(next);
+  }
+
+  function suppressClick() {
+    const stop = (event: Event) => {
+      event.preventDefault();
+      event.stopPropagation();
+    };
+    window.addEventListener("click", stop, { capture: true, once: true });
+  }
+
+  return {
+    offset,
+    live,
+    handlers: {
+      onPointerDown(event: ReactPointerEvent<HTMLElement>) {
+        if (event.button !== 0) return;
+        if ((event.target as HTMLElement).closest(actions.current.ignore)) return;
+        origin.current = { x: event.clientX, y: event.clientY, lock: null };
+      },
+      onPointerMove(event: ReactPointerEvent<HTMLElement>) {
+        const start = origin.current;
+        if (!start || start.lock === "no") return;
+        const dx = event.clientX - start.x;
+        const dy = event.clientY - start.y;
+        if (start.lock === null) {
+          if (Math.hypot(dx, dy) < 8) return;
+          if (Math.abs(dx) < Math.abs(dy)) {
+            start.lock = "no";
+            return;
+          }
+          start.lock = "x";
+          event.currentTarget.setPointerCapture(event.pointerId);
+          setLive(true);
+        }
+        const { onLeft: left, onRight: right, max: limit } = actions.current;
+        let next = dx;
+        if (next > 0 && !right) next = Math.min(next, 28);
+        if (next < 0 && !left) next = Math.max(next, -28);
+        write(Math.max(-limit, Math.min(limit, next)));
+      },
+      onPointerUp() {
+        const start = origin.current;
+        origin.current = null;
+        setLive(false);
+        const { onLeft: left, onRight: right, threshold: limit } = actions.current;
+        const value = offsetRef.current;
+        if (start?.lock === "x") suppressClick();
+        if (start?.lock === "x" && value >= limit && right) {
+          right();
+          if ("vibrate" in navigator) navigator.vibrate(10);
+        } else if (start?.lock === "x" && value <= -limit && left) {
+          left();
+          if ("vibrate" in navigator) navigator.vibrate(10);
+        }
+        write(0);
+      },
+      onPointerCancel() {
+        origin.current = null;
+        setLive(false);
+        write(0);
+      },
+    },
+  };
 }
 
 export function App() {
@@ -220,6 +308,85 @@ export function App() {
       ),
     [favorites, productByKey],
   );
+
+  const tab = drawer ? 2 : screen === "favoritos" ? 1 : 0;
+
+  function goToTab(index: number) {
+    const next = Math.max(0, Math.min(2, index));
+    if (next === 0) {
+      setScreen("inicio");
+      setDrawer(false);
+    } else if (next === 1) {
+      setScreen("favoritos");
+      setDrawer(false);
+    } else {
+      setDrawer(true);
+    }
+  }
+
+  const pageSwipe = useSwipeReveal({
+    onLeft: tab < 2 ? () => goToTab(tab + 1) : undefined,
+    onRight: tab > 0 ? () => goToTab(tab - 1) : undefined,
+    threshold: 64,
+    max: 84,
+    ignore: "input, textarea, select, .row, .chips, .promises, .stepper, .dock",
+  });
+
+  const linesRef = useRef<HTMLUListElement>(null);
+  const sheet = useRef<{ x: number; y: number; lock: "go" | "no" | null; axis: "x" | "y" } | null>(null);
+  const sheetShiftRef = useRef(0);
+  const [sheetShift, setSheetShift] = useState(0);
+  const [sheetLive, setSheetLive] = useState(false);
+  const [sheetAxis, setSheetAxis] = useState<"x" | "y">("y");
+
+  function writeSheet(next: number) {
+    sheetShiftRef.current = next;
+    setSheetShift(next);
+  }
+
+  function onSheetDown(event: ReactPointerEvent<HTMLElement>) {
+    const target = event.target as HTMLElement;
+    if (target.closest("button, a, input, textarea, select, .cart-face")) return;
+    const list = linesRef.current;
+    const onHeader = Boolean(target.closest(".drawer > header"));
+    if (!onHeader && list && list.contains(target) && list.scrollTop > 2) return;
+    sheet.current = { x: event.clientX, y: event.clientY, lock: null, axis: "y" };
+  }
+
+  function onSheetMove(event: ReactPointerEvent<HTMLElement>) {
+    const start = sheet.current;
+    if (!start || start.lock === "no") return;
+    const dx = event.clientX - start.x;
+    const dy = event.clientY - start.y;
+    if (start.lock === null) {
+      if (Math.hypot(dx, dy) < 8) return;
+      const phone = window.matchMedia("(max-width: 720px)").matches;
+      if (phone && dy > 8 && dy > Math.abs(dx)) start.axis = "y";
+      else if (dx > 8 && dx > Math.abs(dy)) start.axis = "x";
+      else {
+        start.lock = "no";
+        return;
+      }
+      start.lock = "go";
+      setSheetAxis(start.axis);
+      event.currentTarget.setPointerCapture(event.pointerId);
+      setSheetLive(true);
+    }
+    const primary = start.axis === "y" ? dy : dx;
+    writeSheet(Math.max(0, Math.min(primary, 280)));
+  }
+
+  function onSheetUp() {
+    const start = sheet.current;
+    sheet.current = null;
+    setSheetLive(false);
+    if (start?.lock === "go" && sheetShiftRef.current > 88) {
+      if (start.axis === "x") goToTab(tab - 1);
+      else setDrawer(false);
+      if ("vibrate" in navigator) navigator.vibrate(8);
+    }
+    writeSheet(0);
+  }
 
   const orderCount = lines.reduce((sum, line) => sum + line.qty, 0);
   const orderTotal = lines.reduce((sum, line) => sum + line.price * line.qty, 0);
@@ -352,7 +519,14 @@ export function App() {
         </div>
       </header>
 
-      <div className="shell">
+      <div
+        className="shell"
+        style={{
+          transform: `translateX(${pageSwipe.offset}px)`,
+          transition: pageSwipe.live ? "none" : "transform 200ms ease",
+        }}
+        {...pageSwipe.handlers}
+      >
       <div className="finder">
         <form
           className="search"
@@ -463,7 +637,7 @@ export function App() {
             {favoriteProducts.length === 0 ? (
               <div className="panel empty">
                 <h2>Todavía no hay favoritos.</h2>
-                <p>En cada artículo tocá la estrella y queda guardado en este celular.</p>
+                <p>Tocá la estrella o deslizá el artículo a la izquierda. Queda guardado en este celular.</p>
                 <button type="button" className="add" onClick={goHome}>
                   Ir al inicio
                 </button>
@@ -500,6 +674,7 @@ export function App() {
             <p className="home-lead">
               Librería escolar mayorista de Córdoba. Buscá por nombre, marca o código y armá el pedido.
             </p>
+            <p className="hint hint-touch">Derecha suma · izquierda favorito · de costado cambiás de pantalla</p>
             <ul className="promises">
               <li>
                 <span className="bubble bubble-navy" aria-hidden="true">
@@ -590,7 +765,8 @@ export function App() {
                 </select>
               </label>
             </div>
-            <p className="hint">Enter suma el resaltado · flechas para recorrerlo · tocá el código para copiarlo</p>
+            <p className="hint hint-keys">Enter suma el resaltado · flechas para recorrerlo · arrastrá para sumar o favorito</p>
+            <p className="hint hint-touch">Derecha suma · izquierda favorito · de costado cambiás de pantalla</p>
             <div
               className="scroller"
               ref={scrollRef}
@@ -674,8 +850,22 @@ export function App() {
       {drawer ? (
         <div className="drawer-root">
           <button type="button" className="backdrop" aria-label="Cerrar pedido" onClick={() => setDrawer(false)} />
-          <aside className="drawer" role="dialog" aria-modal="true" aria-labelledby="pedido-title">
+          <aside
+            className="drawer"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="pedido-title"
+            style={{
+              transform: sheetAxis === "y" ? `translateY(${sheetShift}px)` : `translateX(${sheetShift}px)`,
+              transition: sheetLive ? "none" : "transform 200ms ease",
+            }}
+            onPointerDown={onSheetDown}
+            onPointerMove={onSheetMove}
+            onPointerUp={onSheetUp}
+            onPointerCancel={onSheetUp}
+          >
             <header>
+              <span className="sheet-handle" aria-hidden="true" />
               <div>
                 <p className="eyebrow">Escolar</p>
                 <h2 id="pedido-title">Carrito</h2>
@@ -687,30 +877,9 @@ export function App() {
             {lines.length === 0 ? (
               <p className="drawer-empty">Todavía no hay nada. Buscá un artículo y tocá Sumar.</p>
             ) : (
-              <ul className="lines">
+              <ul className="lines" ref={linesRef}>
                 {lines.map((line) => (
-                  <li key={lineKey(line)}>
-                    <div>
-                      <strong>{displayName(line.name)}</strong>
-                      <span>
-                        {line.code}
-                        {" · "}
-                        {line.price === 0 ? "sin precio" : `${formatMoney(line.price)} c/u`}
-                      </span>
-                    </div>
-                    <div className="line-side">
-                      <div className="stepper">
-                        <button type="button" aria-label="Quitar uno" onClick={() => setQty(line, line.qty - 1)}>
-                          −
-                        </button>
-                        <span>{line.qty}</span>
-                        <button type="button" aria-label="Sumar uno" onClick={() => setQty(line, line.qty + 1)}>
-                          +
-                        </button>
-                      </div>
-                      <em>{line.price === 0 ? "—" : formatMoney(line.price * line.qty)}</em>
-                    </div>
-                  </li>
+                  <CartLine key={lineKey(line)} line={line} onSetQty={setQty} />
                 ))}
               </ul>
             )}
@@ -786,47 +955,100 @@ function ProductRow({
   onToggleFavorite: (product: Product) => void;
 }) {
   const name = displayName(product.name);
+  const swipe = useSwipeReveal({
+    onRight: () => onAdd(product),
+    onLeft: () => onToggleFavorite(product),
+  });
   return (
     <article className={selected ? "row is-active" : "row"} style={style} onMouseEnter={onHover}>
-      <div className="row-main">
-        <h3>
-          <Highlight text={name} query={query} />
-        </h3>
-        <p>
-          <button type="button" className="code" onClick={() => onCopy(product.code)}>
-            {product.code}
-          </button>
-          <span>{categoryLabel(product.category)}</span>
-        </p>
+      <div className={swipe.offset < 0 ? "swipe-bg is-fav" : "swipe-bg is-add"} aria-hidden="true">
+        {swipe.offset < 0 ? (saved ? "Quitar" : "Favorito") : "Sumar"}
       </div>
-      <p className={product.price === 0 ? "price is-missing" : "price"}>{formatPrice(product.price)}</p>
-      <div className="row-action">
-        <button
-          type="button"
-          className={saved ? "star is-on" : "star"}
-          aria-pressed={saved}
-          aria-label={saved ? `Sacar ${name} de favoritos` : `Guardar ${name} en favoritos`}
-          onClick={() => onToggleFavorite(product)}
-        >
-          <StarIcon filled={saved} />
-        </button>
-        {qty > 0 ? (
+      <div
+        className={swipe.live ? "row-face is-dragging" : "row-face"}
+        style={{ transform: `translateX(${swipe.offset}px)` }}
+        {...swipe.handlers}
+      >
+        <div className="row-main">
+          <h3>
+            <Highlight text={name} query={query} />
+          </h3>
+          <p>
+            <button type="button" className="code" onClick={() => onCopy(product.code)}>
+              {product.code}
+            </button>
+            <span>{categoryLabel(product.category)}</span>
+          </p>
+        </div>
+        <p className={product.price === 0 ? "price is-missing" : "price"}>{formatPrice(product.price)}</p>
+        <div className="row-action">
+          <button
+            type="button"
+            className={saved ? "star is-on" : "star"}
+            aria-pressed={saved}
+            aria-label={saved ? `Sacar ${name} de favoritos` : `Guardar ${name} en favoritos`}
+            onClick={() => onToggleFavorite(product)}
+          >
+            <StarIcon filled={saved} />
+          </button>
+          {qty > 0 ? (
+            <div className="stepper">
+              <button type="button" aria-label={`Quitar uno de ${name}`} onClick={() => onSetQty(product, qty - 1)}>
+                −
+              </button>
+              <span>{qty}</span>
+              <button type="button" aria-label={`Sumar otro de ${name}`} onClick={() => onSetQty(product, qty + 1)}>
+                +
+              </button>
+            </div>
+          ) : (
+            <button type="button" className="add" onClick={() => onAdd(product)}>
+              Sumar
+            </button>
+          )}
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function CartLine({ line, onSetQty }: { line: Line; onSetQty: (line: Line, qty: number) => void }) {
+  const swipe = useSwipeReveal({
+    onLeft: () => onSetQty(line, 0),
+    threshold: 80,
+  });
+  return (
+    <li className="cart-line">
+      <div className="swipe-bg is-remove" aria-hidden="true">
+        Quitar
+      </div>
+      <div
+        className={swipe.live ? "cart-face is-dragging" : "cart-face"}
+        style={{ transform: `translateX(${swipe.offset}px)` }}
+        {...swipe.handlers}
+      >
+        <div>
+          <strong>{displayName(line.name)}</strong>
+          <span>
+            {line.code}
+            {" · "}
+            {line.price === 0 ? "sin precio" : `${formatMoney(line.price)} c/u`}
+          </span>
+        </div>
+        <div className="line-side">
           <div className="stepper">
-            <button type="button" aria-label={`Quitar uno de ${name}`} onClick={() => onSetQty(product, qty - 1)}>
+            <button type="button" aria-label="Quitar uno" onClick={() => onSetQty(line, line.qty - 1)}>
               −
             </button>
-            <span>{qty}</span>
-            <button type="button" aria-label={`Sumar otro de ${name}`} onClick={() => onSetQty(product, qty + 1)}>
+            <span>{line.qty}</span>
+            <button type="button" aria-label="Sumar uno" onClick={() => onSetQty(line, line.qty + 1)}>
               +
             </button>
           </div>
-        ) : (
-          <button type="button" className="add" onClick={() => onAdd(product)}>
-            Sumar
-          </button>
-        )}
+          <em>{line.price === 0 ? "—" : formatMoney(line.price * line.qty)}</em>
+        </div>
       </div>
-    </article>
+    </li>
   );
 }
 

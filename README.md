@@ -1,6 +1,8 @@
-# Catálogo Escolar · Mayorista Sofia
+# Lista de precios · Librería Mayorista Sofía
 
-Revista digital con las fotos reales del catálogo físico, mejoradas, y animación de pasar hojas.
+Buscador de la lista mayorista del 6 de octubre de 2026. Se busca por nombre, marca o código, se filtra por rubro y se arma un pedido para copiar.
+
+Los precios salen de la lista vigente, en pesos y con impuestos. Las fotos se pueden sumar después.
 
 ## Uso
 
@@ -11,23 +13,21 @@ npm run dev
 
 Abrí la URL de Vite (por defecto http://localhost:5173).
 
-## Páginas
+## Atajos
 
-Las hojas mejoradas están en `public/catalog/pages/`:
+- `/` enfoca la búsqueda
+- Flechas arriba y abajo recorren los resultados
+- Enter suma el artículo resaltado
+- Escape cierra el pedido o borra la búsqueda
 
-- `03-papeleria.jpg`
-- `04-blocks-papel-glace.jpg`
-- `05-adhesivos.jpg`
-- `07-temperas-acuarelas.jpg`
-- `08-pinceles.jpg`
-- `09-masas-plastilinas.jpg`
-- `10-marcadores-agua.jpg`
-- `11-marcadores-permanentes.jpg`
+El pedido queda guardado en el navegador.
 
-Son las mismas fotos del catálogo, con más nitidez, contraste y blanco limpio (sin ilustrar).
+## Regenerar la lista
 
-Para regenerarlas:
+Si llega un PDF nuevo de Crystal Reports con el mismo formato:
 
 ```bash
-python3 scripts/enhance_catalog_photos.py
+python3 scripts/build_price_list.py lista.pdf
 ```
+
+Eso vuelve a escribir `public/lista.json`.

@@ -30,7 +30,7 @@ h1, h2, h3, p { margin: 0; }
 
 a { color: inherit; }
 
-.app { padding-bottom: calc(78px + env(safe-area-inset-bottom)); }
+.app { padding-bottom: calc(112px + env(safe-area-inset-bottom)); }
 
 .top {
   background: var(--blue);
@@ -375,6 +375,8 @@ a { color: inherit; }
   padding-bottom: 8px;
 }
 
+.scroller-flow { padding-bottom: 88px; }
+
 .row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto auto;
@@ -700,7 +702,7 @@ mark::before {
 .toast {
   position: fixed;
   left: 50%;
-  bottom: calc(78px + env(safe-area-inset-bottom));
+  bottom: calc(108px + env(safe-area-inset-bottom));
   transform: translateX(-50%);
   background: var(--navy);
   color: white;
@@ -731,15 +733,24 @@ a:focus-visible {
 }
 
 .dock {
-  display: flex;
   position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
   z-index: 16;
-  background: white;
-  border-top: 3px solid var(--orange);
-  padding: 4px 8px calc(4px + env(safe-area-inset-bottom));
+  left: 50%;
+  bottom: calc(12px + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  width: min(420px, calc(100% - 28px));
+  display: flex;
+  gap: 4px;
+  padding: 6px;
+  border-radius: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  background: rgba(255, 255, 255, 0.62);
+  box-shadow:
+    0 16px 40px rgba(23, 47, 96, 0.18),
+    0 2px 8px rgba(23, 47, 96, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(22px) saturate(1.6);
+  -webkit-backdrop-filter: blur(22px) saturate(1.6);
 }
 
 .dock-tab {
@@ -749,31 +760,44 @@ a:focus-visible {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 1px;
-  min-height: 52px;
+  gap: 2px;
+  min-height: 54px;
   border: 0;
-  border-radius: 12px;
+  border-radius: 22px;
   background: transparent;
-  color: var(--muted);
+  color: var(--navy);
   font-size: 0.68rem;
   font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.dock-icon {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
 }
 
 .dock-tab svg { width: 22px; height: 22px; }
 
-.dock-tab.is-on { color: var(--blue); }
+.dock-tab.is-on {
+  color: var(--blue);
+  background: rgba(35, 74, 153, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(35, 74, 153, 0.08);
+}
 
 .dock-tab em {
   position: absolute;
-  top: 2px;
-  left: 50%;
-  margin-left: 8px;
+  top: -4px;
+  right: -10px;
   min-width: 16px;
   height: 16px;
   padding: 0 4px;
   border-radius: 999px;
   background: var(--orange);
   color: white;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.85);
   font-style: normal;
   font-size: 0.62rem;
   font-weight: 700;
@@ -782,7 +806,7 @@ a:focus-visible {
 }
 
 @media (max-width: 720px) {
-  .app { padding-bottom: calc(78px + env(safe-area-inset-bottom)); }
+  .app { padding-bottom: calc(112px + env(safe-area-inset-bottom)); }
   .top {
     position: sticky;
     top: 0;
@@ -826,7 +850,7 @@ a:focus-visible {
   .results-bar { align-items: flex-start; }
   .sort { flex-direction: column; align-items: flex-end; gap: 4px; }
   .scroller {
-    height: calc(100dvh - 248px - env(safe-area-inset-bottom));
+    height: calc(100dvh - 196px - env(safe-area-inset-bottom));
     max-height: none;
     min-height: 240px;
     border-radius: 16px;

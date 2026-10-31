@@ -596,7 +596,7 @@ export function App() {
               ref={scrollRef}
               onScroll={(event) => setScrollTop(event.currentTarget.scrollTop)}
             >
-              <div style={{ height: items.length * rowHeight, position: "relative" }}>
+              <div style={{ height: items.length * rowHeight + 88, position: "relative" }}>
                 {items.slice(start, end).map((product, offset) => {
                   const index = start + offset;
                   const qty = qtyByKey.get(lineKey(product)) ?? 0;
@@ -636,7 +636,9 @@ export function App() {
           aria-current={screen === "inicio" && !drawer ? "page" : undefined}
           onClick={goHome}
         >
-          <HomeIcon />
+          <span className="dock-icon">
+            <HomeIcon />
+          </span>
           <span>Inicio</span>
         </button>
         <button
@@ -649,9 +651,11 @@ export function App() {
             setDrawer(false);
           }}
         >
-          <StarIcon filled={screen === "favoritos" && !drawer} />
+          <span className="dock-icon">
+            <StarIcon filled={screen === "favoritos" && !drawer} />
+            {favorites.length > 0 ? <em>{favorites.length > 99 ? "99+" : favorites.length}</em> : null}
+          </span>
           <span>Favoritos</span>
-          {favorites.length > 0 ? <em>{favorites.length > 99 ? "99+" : favorites.length}</em> : null}
         </button>
         <button
           type="button"
@@ -659,9 +663,11 @@ export function App() {
           aria-current={drawer ? "page" : undefined}
           onClick={() => setDrawer((open) => !open)}
         >
-          <CartIcon />
+          <span className="dock-icon">
+            <CartIcon />
+            {orderCount > 0 ? <em>{orderCount > 99 ? "99+" : orderCount}</em> : null}
+          </span>
           <span>Carrito</span>
-          {orderCount > 0 ? <em>{orderCount > 99 ? "99+" : orderCount}</em> : null}
         </button>
       </nav>
 

@@ -40,6 +40,61 @@ function lineKey(line: { code: string; name: string }): string {
   return `${line.code}\u0000${line.name}`;
 }
 
+/** WhatsApp / clipboard order copy — warm, clear, and easy to read on mobile. */
+function buildOrderText(catalog: Catalog, lines: Line[], orderTotal: number, unpriced: number): string {
+  const fecha = formatFecha(catalog.fecha);
+  const units = lines.reduce((sum, line) => sum + line.qty, 0);
+  const articleLabel = lines.length === 1 ? "1 artículo" : `${lines.length} artículos`;
+  const unitLabel = units === 1 ? "1 unidad" : `${units} unidades`;
+
+  const body = lines.map((line, index) => {
+    const name = displayName(line.name);
+    const indexLabel = String(index + 1).padStart(2, "0");
+    if (line.price === 0) {
+      return [`*${indexLabel} · ${line.code}*`, name, `${line.qty} u. · _consultar precio_`].join("\n");
+    }
+    const unit = formatMoney(line.price);
+    const subtotal = formatMoney(line.price * line.qty);
+    return [
+      `*${indexLabel} · ${line.code}*`,
+      name,
+      `${line.qty} u. × ${unit}`,
+      `Subtotal · *${subtotal}*`,
+    ].join("\n");
+  });
+
+  const notes: string[] = [];
+  if (unpriced > 0) {
+    notes.push(
+      unpriced === 1
+        ? "_Hay 1 artículo sin precio; no forma parte del total._"
+        : `_Hay ${unpriced} artículos sin precio; no forman parte del total._`,
+    );
+  }
+
+  return [
+    "*Librería Mayorista Sofía*",
+    "Pedido mayorista · Córdoba",
+    "",
+    `Lista vigente · ${fecha}`,
+    "Precios en pesos argentinos, con impuestos incluidos",
+    "",
+    "────────────────────",
+    "",
+    body.join("\n\n"),
+    "",
+    "────────────────────",
+    "",
+    "*Total estimado*",
+    `*${formatMoney(orderTotal)}*`,
+    `${articleLabel} · ${unitLabel}`,
+    ...notes,
+    "",
+    "Muchas gracias.",
+    "Quedo a la espera de su confirmación para avanzar con el pedido.",
+  ].join("\n");
+}
+
 function loadFavorites(): Favorite[] {
   try {
     const raw = localStorage.getItem(FAVORITES_KEY);
@@ -465,22 +520,7 @@ export function App() {
 
   function sendOrder() {
     if (!catalog || lines.length === 0) return;
-    const fecha = formatFecha(catalog.fecha);
-    const body = lines.map((line) => {
-      const total = line.price === 0 ? "sin precio" : formatMoney(line.price * line.qty);
-      return `${line.qty} × ${line.code} — ${displayName(line.name)} — ${total}`;
-    });
-    const text = [
-      "Pedido · Librería Mayorista Sofía",
-      `Lista del ${fecha} · precios con impuestos`,
-      "",
-      ...body,
-      "",
-      `Total: ${formatMoney(orderTotal)}`,
-      unpriced > 0 ? `${unpriced} ${unpriced === 1 ? "artículo sin precio" : "artículos sin precio"}, fuera del total.` : "",
-    ]
-      .filter((line, index, all) => line !== "" || index !== all.length - 1)
-      .join("\n");
+    const text = buildOrderText(catalog, lines, orderTotal, unpriced);
     const url = `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(text)}`;
     const opened = window.open(url, "_blank", "noopener,noreferrer");
     if (!opened) window.location.href = url;
